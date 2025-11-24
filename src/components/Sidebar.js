@@ -76,6 +76,24 @@ const menuItems = [
     icon: 'certificate',
     route: 'Licencias',
   },
+  {
+    id: 'conductores',
+    label: 'Gestión de Conductores',
+    icon: 'id-badge',
+    route: 'Conductores',
+  },
+  {
+    id: 'marcas',
+    label: 'Gestión de Marcas',
+    icon: 'tag',
+    route: 'Marcas',
+  },
+  {
+    id: 'vehiculos',
+    label: 'Gestión de Vehículos',
+    icon: 'car',
+    route: 'Vehiculos',
+  },
 ];
 
 export default function Sidebar({ isVisible, onClose, navigation }) {
