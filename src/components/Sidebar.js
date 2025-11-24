@@ -28,6 +28,24 @@ const menuItems = [
     icon: 'list',
     route: 'TipoEmergencia',
   },
+  {
+    id: 'estado',
+    label: 'Gestión de Estados',
+    icon: 'flag',
+    route: 'Estado',
+  },
+  {
+    id: 'solicitantes',
+    label: 'Gestión de Solicitantes',
+    icon: 'users',
+    route: 'Solicitantes',
+  },
+  {
+    id: 'destino',
+    label: 'Gestión de Destinos',
+    icon: 'map-marked-alt',
+    route: 'Destino',
+  },
 ];
 
 export default function Sidebar({ isVisible, onClose, navigation }) {

@@ -8,6 +8,9 @@ import DashboardScreen from './src/screens/DashboardScreen';
 import SolicitudScreen from './src/screens/SolicitudScreen';
 import PaqueteScreen from './src/screens/PaqueteScreen';
 import TipoEmergenciaScreen from './src/screens/TipoEmergenciaScreen';
+import EstadoScreen from './src/screens/EstadoScreen';
+import SolicitantesScreen from './src/screens/SolicitantesScreen';
+import DestinoScreen from './src/screens/DestinoScreen';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -41,7 +44,22 @@ export default function App() {
         <Stack.Screen
           name="TipoEmergencia"
           component={TipoEmergenciaScreen}
-          options={{ title: 'Tipo de Emergencia' }}
+          options={{ title: 'Listado de Solicitudes' }}
+        />
+         <Stack.Screen
+          name="Estado"
+          component={EstadoScreen}
+          options={{ title: 'Gestión de Estados' }}
+        />
+        <Stack.Screen
+          name="Solicitantes"
+          component={SolicitantesScreen}
+          options={{ title: 'Gestión de Solicitantes' }}
+        />
+        <Stack.Screen
+          name="Destino"
+          component={DestinoScreen}
+          options={{ title: 'Gestión de Destinos' }}
         />
       </Stack.Navigator>
       </NavigationContainer>
