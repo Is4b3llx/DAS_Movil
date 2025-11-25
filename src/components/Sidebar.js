@@ -32,12 +32,7 @@ const menuItems = [
  
 
  
-  {
-    id: 'reporte',
-    label: 'Gestión de Reportes',
-    icon: 'file-invoice',
-    route: 'Reporte',
-  },
+  
  
   {
     id: 'licencias',
