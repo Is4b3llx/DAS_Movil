@@ -9,16 +9,20 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import { adminlteColors } from '../theme/adminlte';
 import AdminLayout from '../components/AdminLayout';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { conductorService } from '../services/conductorService';
+import * as licenciaService from '../services/licenciaService';
 
 export default function ConductoresScreen() {
   const [conductores, setConductores] = useState([]);
+  const [licencias, setLicencias] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalCrearVisible, setModalCrearVisible] = useState(false);
+  const [modalLicenciaVisible, setModalLicenciaVisible] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -31,7 +35,17 @@ export default function ConductoresScreen() {
   // Cargar conductores al montar el componente
   useEffect(() => {
     cargarConductores();
+    cargarLicencias();
   }, []);
+
+  const cargarLicencias = async () => {
+    try {
+      const data = await licenciaService.getLicencias();
+      setLicencias(data);
+    } catch (error) {
+      console.error('Error al cargar licencias:', error);
+    }
+  };
 
   const cargarConductores = async () => {
     setLoading(true);
@@ -255,7 +269,7 @@ export default function ConductoresScreen() {
                   <Text style={styles.conductorInfoLabel}>Tipo Licencia:</Text>
                 </View>
                 <Text style={styles.conductorInfoValueMuted}>
-                  {conductor.id_licencia}
+                  {conductor.licencia ? conductor.licencia.licencia : conductor.id_licencia || 'Sin licencia'}
                 </Text>
               </View>
             </View>
@@ -357,13 +371,17 @@ export default function ConductoresScreen() {
               <Text style={styles.label}>
                 Tipo Licencia <Text style={styles.required}>*</Text>
               </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej. 1 (ID de tipo de licencia)"
-                value={formData.id_licencia}
-                onChangeText={text => handleChange('id_licencia', text)}
-                keyboardType="numeric"
-              />
+              <TouchableOpacity
+                style={styles.selectButton}
+                onPress={() => setModalLicenciaVisible(true)}
+              >
+                <Text style={styles.selectButtonText}>
+                  {formData.id_licencia 
+                    ? licencias.find(l => l.id_licencia === formData.id_licencia)?.licencia || 'Seleccionar licencia'
+                    : 'Seleccionar licencia'}
+                </Text>
+                <FontAwesome5 name="chevron-down" size={14} color={adminlteColors.muted} />
+              </TouchableOpacity>
             </View>
           </ScrollView>
 
@@ -379,20 +397,18 @@ export default function ConductoresScreen() {
                 styles.modalFooterButtonSuccess,
                 (!formData.nombre.trim() ||
                   !formData.apellido.trim() ||
-                  !formData.fechaNacimiento.trim() ||
+                  !formData.fecha_nacimiento.trim() ||
                   !formData.ci.trim() ||
-                  !formData.celular.trim() ||
-                  !formData.tipoLicencia.trim()) &&
+                  !formData.celular.trim()) &&
                   styles.modalFooterButtonDisabled,
               ]}
               onPress={handleCrearConductor}
               disabled={
                 !formData.nombre.trim() ||
                 !formData.apellido.trim() ||
-                !formData.fechaNacimiento.trim() ||
+                !formData.fecha_nacimiento.trim() ||
                 !formData.ci.trim() ||
-                !formData.celular.trim() ||
-                !formData.tipoLicencia.trim()
+                !formData.celular.trim()
               }
             >
               <FontAwesome5
@@ -404,6 +420,67 @@ export default function ConductoresScreen() {
               <Text style={styles.modalFooterButtonText}>Crear Conductor</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Modal Seleccionar Licencia dentro del modal principal */}
+          <Modal
+            visible={modalLicenciaVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setModalLicenciaVisible(false)}
+          >
+            <TouchableOpacity 
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setModalLicenciaVisible(false)}
+            >
+              <TouchableOpacity 
+                style={styles.modalLicenciaContainer}
+                activeOpacity={1}
+                onPress={(e) => e.stopPropagation()}
+              >
+                <View style={styles.modalLicenciaHeader}>
+                  <Text style={styles.modalLicenciaTitle}>Seleccionar Licencia</Text>
+                  <TouchableOpacity onPress={() => setModalLicenciaVisible(false)}>
+                    <MaterialIcons name="close" size={24} color={adminlteColors.dark} />
+                  </TouchableOpacity>
+                </View>
+                
+                <ScrollView style={styles.licenciasList}>
+                  {licencias.map((item, index) => {
+                    const isSelected = formData.id_licencia === item.id_licencia;
+                    console.log('Licencia:', item.licencia, 'ID:', item.id_licencia, 'Selected ID:', formData.id_licencia, 'isSelected:', isSelected);
+                    return (
+                      <TouchableOpacity
+                        key={item?.id_licencia ? item.id_licencia.toString() : `licencia-${index}`}
+                        style={[
+                          styles.licenciaOption,
+                          isSelected && styles.licenciaOptionSelected
+                        ]}
+                        onPress={() => {
+                          console.log('Seleccionando licencia:', item.id_licencia);
+                          handleChange('id_licencia', item.id_licencia);
+                          setTimeout(() => {
+                            console.log('Nuevo valor de id_licencia:', formData.id_licencia);
+                            setModalLicenciaVisible(false);
+                          }, 100);
+                        }}
+                      >
+                        <Text style={[
+                          styles.licenciaOptionText,
+                          isSelected && styles.licenciaOptionTextSelected
+                        ]}>
+                          {item.licencia}
+                        </Text>
+                        {isSelected && (
+                          <FontAwesome5 name="check" size={16} color={adminlteColors.primary} />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Modal>
         </View>
       </Modal>
     </AdminLayout>
@@ -556,6 +633,68 @@ const styles = StyleSheet.create({
     fontSize: 14,
     backgroundColor: '#ffffff',
     color: adminlteColors.dark,
+  },
+  selectButton: {
+    borderWidth: 1,
+    borderColor: '#ced4da',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  selectButtonText: {
+    fontSize: 14,
+    color: adminlteColors.dark,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalLicenciaContainer: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    paddingBottom: 20,
+  },
+  modalLicenciaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalLicenciaTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: adminlteColors.dark,
+  },
+  licenciasList: {
+    maxHeight: 400,
+  },
+  licenciaOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  licenciaOptionSelected: {
+    backgroundColor: adminlteColors.lightBg,
+  },
+  licenciaOptionText: {
+    fontSize: 15,
+    color: adminlteColors.dark,
+  },
+  licenciaOptionTextSelected: {
+    fontWeight: '600',
+    color: adminlteColors.primary,
   },
   modalFooter: {
     flexDirection: 'row',
