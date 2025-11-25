@@ -28,54 +28,17 @@ const menuItems = [
     icon: 'list',
     route: 'ListadoSolicitud',
   },
-  {
-    id: 'tipoEmergencia',
-    label: 'Tipo de Emergencia',
-    icon: 'list',
-    route: 'TipoEmergencia',
-  },
-  {
-    id: 'estado',
-    label: 'Gestión de Estados',
-    icon: 'flag',
-    route: 'Estado',
-  },
-  {
-    id: 'solicitantes',
-    label: 'Gestión de Solicitantes',
-    icon: 'users',
-    route: 'Solicitantes',
-  },
-  {
-    id: 'destino',
-    label: 'Gestión de Destinos',
-    icon: 'map-marked-alt',
-    route: 'Destino',
-  },
-  {
-    id: 'ubicaciones',
-    label: 'Gestión de Ubicaciones',
-    icon: 'location-arrow',
-    route: 'Ubicaciones',
-  },
-  {
-    id: 'voluntario',
-    label: 'Gestión de Voluntarios',
-    icon: 'hands-helping',
-    route: 'Voluntario',
-  },
+  
+ 
+
+ 
   {
     id: 'reporte',
     label: 'Gestión de Reportes',
     icon: 'file-invoice',
     route: 'Reporte',
   },
-  {
-    id: 'seguimientoPaquete',
-    label: 'Seguimiento de Paquetes',
-    icon: 'truck',
-    route: 'SeguimientoPaquete',
-  },
+ 
   {
     id: 'licencias',
     label: 'Gestión de Licencias',
@@ -106,12 +69,7 @@ const menuItems = [
     icon: 'truck-monster',
     route: 'TipoVehiculo',
   },
-  {
-    id: 'roles',
-    label: 'Gestión de Roles',
-    icon: 'user-shield',
-    route: 'Roles',
-  },
+ 
 ];
 
 export default function Sidebar({ isVisible, onClose, navigation }) {
