@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,86 +8,96 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { adminlteColors } from '../theme/adminlte';
 import AdminLayout from '../components/AdminLayout';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-
-const conductoresIniciales = [
-  {
-    id: 1,
-    nombre: 'Carlos',
-    apellido: 'Rodríguez',
-    fechaNacimiento: '15/03/1985',
-    ci: '12345678',
-    celular: '70123456',
-    tipoLicencia: 'Categoría B',
-  },
-  {
-    id: 2,
-    nombre: 'María',
-    apellido: 'López',
-    fechaNacimiento: '22/07/1990',
-    ci: '87654321',
-    celular: '71234567',
-    tipoLicencia: 'Categoría A',
-  },
-  {
-    id: 3,
-    nombre: 'José',
-    apellido: 'Martínez',
-    fechaNacimiento: '10/11/1982',
-    ci: '11223344',
-    celular: '72345678',
-    tipoLicencia: 'Categoría C',
-  },
-];
+import { conductorService } from '../services/conductorService';
 
 export default function ConductoresScreen() {
-  const [conductores, setConductores] = useState(conductoresIniciales);
+  const [conductores, setConductores] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [modalCrearVisible, setModalCrearVisible] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
-    fechaNacimiento: '',
+    fecha_nacimiento: '',
     ci: '',
     celular: '',
-    tipoLicencia: '',
+    id_licencia: '',
   });
+
+  // Cargar conductores al montar el componente
+  useEffect(() => {
+    cargarConductores();
+  }, []);
+
+  const cargarConductores = async () => {
+    setLoading(true);
+    try {
+      const result = await conductorService.getConductores();
+      if (result.success) {
+        setConductores(result.data || []);
+      } else {
+        Alert.alert('Error', 'No se pudieron cargar los conductores');
+        setConductores([]);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Error de conexión con el servidor');
+      setConductores([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleCrearConductor = () => {
+  const handleCrearConductor = async () => {
     if (
       !formData.nombre.trim() ||
       !formData.apellido.trim() ||
-      !formData.fechaNacimiento.trim() ||
+      !formData.fecha_nacimiento.trim() ||
       !formData.ci.trim() ||
-      !formData.celular.trim() ||
-      !formData.tipoLicencia.trim()
+      !formData.celular.trim()
     ) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+      Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
       return;
     }
 
-    const nuevoConductor = {
-      id: Date.now(),
-      ...formData,
-    };
-
-    setConductores(prev => [nuevoConductor, ...prev]);
-    setFormData({
-      nombre: '',
-      apellido: '',
-      fechaNacimiento: '',
-      ci: '',
-      celular: '',
-      tipoLicencia: '',
-    });
-    setModalCrearVisible(false);
-    Alert.alert('Éxito', 'Conductor creado exitosamente');
+    setLoading(true);
+    try {
+      const result = await conductorService.createConductor({
+        nombre: formData.nombre.trim(),
+        apellido: formData.apellido.trim(),
+        fecha_nacimiento: formData.fecha_nacimiento,
+        ci: formData.ci.trim(),
+        celular: formData.celular.trim(),
+        id_licencia: formData.id_licencia || null,
+      });
+      
+      if (result.success) {
+        Alert.alert('Éxito', 'Conductor creado exitosamente');
+        setFormData({
+          nombre: '',
+          apellido: '',
+          fecha_nacimiento: '',
+          ci: '',
+          celular: '',
+          id_licencia: '',
+        });
+        setModalCrearVisible(false);
+        cargarConductores();
+      } else {
+        Alert.alert('Error', result.error || 'No se pudo crear el conductor');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Error de conexión con el servidor');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const obtenerColorBorde = index => {
@@ -129,15 +139,29 @@ export default function ConductoresScreen() {
 
       {/* Lista de Conductores */}
       <ScrollView style={styles.conductoresContainer}>
-        <View style={styles.conductoresGrid}>
-          {conductores.map((conductor, index) => (
-            <View
-              key={conductor.id}
-              style={[
-                styles.conductorCard,
-                {
-                  borderTopWidth: 3,
-                  borderTopColor: obtenerColorBorde(index),
+        {loading ? (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={adminlteColors.primary} />
+            <Text style={{ marginTop: 10, color: adminlteColors.muted }}>
+              Cargando conductores...
+            </Text>
+          </View>
+        ) : conductores.length === 0 ? (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: adminlteColors.muted }}>
+              No hay conductores registrados
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.conductoresGrid}>
+            {conductores.map((conductor, index) => (
+              <View
+                key={conductor.id ? `conductor-${conductor.id}` : `conductor-index-${index}`}
+                style={[
+                  styles.conductorCard,
+                  {
+                    borderTopWidth: 3,
+                    borderTopColor: obtenerColorBorde(index),
                 },
               ]}
             >
@@ -192,7 +216,7 @@ export default function ConductoresScreen() {
                   <Text style={styles.conductorInfoLabel}>Fecha Nacimiento:</Text>
                 </View>
                 <Text style={styles.conductorInfoValueMuted}>
-                  {conductor.fechaNacimiento}
+                  {conductor.fecha_nacimiento}
                 </Text>
 
                 <View style={styles.conductorInfoRow}>
@@ -231,12 +255,13 @@ export default function ConductoresScreen() {
                   <Text style={styles.conductorInfoLabel}>Tipo Licencia:</Text>
                 </View>
                 <Text style={styles.conductorInfoValueMuted}>
-                  {conductor.tipoLicencia}
+                  {conductor.id_licencia}
                 </Text>
               </View>
             </View>
           ))}
-        </View>
+          </View>
+        )}
       </ScrollView>
 
       {/* Modal Crear Conductor */}
@@ -297,8 +322,8 @@ export default function ConductoresScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Ej. 15/03/1985"
-                value={formData.fechaNacimiento}
-                onChangeText={text => handleChange('fechaNacimiento', text)}
+                value={formData.fecha_nacimiento}
+                onChangeText={text => handleChange('fecha_nacimiento', text)}
               />
             </View>
 
@@ -334,9 +359,10 @@ export default function ConductoresScreen() {
               </Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ej. Categoría B"
-                value={formData.tipoLicencia}
-                onChangeText={text => handleChange('tipoLicencia', text)}
+                placeholder="Ej. 1 (ID de tipo de licencia)"
+                value={formData.id_licencia}
+                onChangeText={text => handleChange('id_licencia', text)}
+                keyboardType="numeric"
               />
             </View>
           </ScrollView>
