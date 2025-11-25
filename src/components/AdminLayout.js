@@ -40,7 +40,7 @@ export default function AdminLayout({ children, scroll = true }) {
         >
           <FontAwesome5 name="bars" size={22} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Alas Chiquitanas</Text>
+        <Text style={styles.headerTitle}>D.A.S</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   headerRight: {
-    width: 36, // Mismo ancho que el botón de menú para centrar el título
+    width: 36,
   },
   content: {
     flex: 1,

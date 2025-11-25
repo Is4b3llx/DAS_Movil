@@ -22,26 +22,64 @@ import MarcasScreen from './src/screens/MarcasScreen';
 import VehiculosScreen from './src/screens/VehiculosScreen';
 import TipoVehiculoScreen from './src/screens/TipoVehiculoScreen';
 import RolesScreen from './src/screens/RolesScreen';
+
+import LoginScreen from './src/screens/LoginScreen';
+import { getStoredSession } from './src/services/authService';
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  const [initialRoute, setInitialRoute] = React.useState('Login');
+  const [checkingSession, setCheckingSession] = React.useState(true);
+
+  React.useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { token } = await getStoredSession();
+        if (token) {
+          setInitialRoute('ListadoSolicitud');
+        } else {
+          setInitialRoute('Login');
+        }
+      } catch (e) {
+        setInitialRoute('Login');
+      } finally {
+        setCheckingSession(false);
+      }
+    };
+
+    checkSession();
+  }, []);
+
+  if (checkingSession) {
+    return null;
+  }
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>
         <StatusBar style="light" />
         <Stack.Navigator
-        screenOptions={{
-          headerShown: false, // Ocultamos el header nativo porque usamos nuestro propio header en AdminLayout
-          contentStyle: {
-            backgroundColor: adminlteColors.bodyBg,
-          },
-        }}
-      >
+          initialRouteName={initialRoute}
+          screenOptions={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: adminlteColors.bodyBg,
+            },
+          }}
+        > 
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ title: 'Iniciar sesión' }}
+        />
+
         <Stack.Screen
           name="Dashboard"
           component={DashboardScreen}
           options={{ title: 'Dashboard' }}
         />
+
         <Stack.Screen
           name="Solicitud"
           component={SolicitudScreen}
