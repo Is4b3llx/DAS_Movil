@@ -112,15 +112,23 @@ export default function ListadoSolicitudScreen() {
             return 'Producto';
           });
         }
+        // Destino (ubicación) puede venir anidado
+        const destinoObj = item.destino || item.destino_data || item.ubicacion_destino || null;
+        const direccionDestino = destinoObj && (destinoObj.direccion || destinoObj.ubicacion || destinoObj.zona);
+        const comunidadDestino = destinoObj && (destinoObj.comunidad || destinoObj.barrio);
+        const provinciaDestino = destinoObj && destinoObj.provincia;
+
         return {
           id: id || Math.random(), // fallback para evitar key undefined
           numero,
           estado,
           fecha: item.fecha || item.created_at || item.updated_at || '',
-            solicitante: solicitanteValor,
+          solicitante: solicitanteValor,
           email: item.email || item.correo || (item.solicitante && item.solicitante.email) || 'N/D',
           ci: item.ci || item.documento || (item.solicitante && item.solicitante.ci) || 'N/D',
-          direccion: item.direccion || item.ubicacion || item.domicilio || 'N/D',
+          direccion: direccionDestino || item.direccion || item.ubicacion || item.domicilio || 'N/D',
+          comunidad: comunidadDestino || item.comunidad || null,
+          provincia: provinciaDestino || item.provincia || null,
           fechaTexto: item.fecha_formateada || item.fecha || item.created_at || '',
           productos: productosArray,
         };
