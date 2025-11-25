@@ -269,7 +269,11 @@ export default function ConductoresScreen() {
                   <Text style={styles.conductorInfoLabel}>Tipo Licencia:</Text>
                 </View>
                 <Text style={styles.conductorInfoValueMuted}>
-                  {conductor.licencia ? conductor.licencia.licencia : conductor.id_licencia || 'Sin licencia'}
+                  {conductor.licencia 
+                    ? conductor.licencia.licencia 
+                    : conductor.id_licencia 
+                      ? licencias.find(l => l.id === conductor.id_licencia || l.id_licencia === conductor.id_licencia)?.licencia || `ID: ${conductor.id_licencia}`
+                      : 'Sin licencia'}
                 </Text>
               </View>
             </View>
