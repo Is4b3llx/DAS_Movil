@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,9 @@ import { Picker } from '@react-native-picker/picker';
 import { adminlteColors } from '../theme/adminlte';
 import AdminLayout from '../components/AdminLayout';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { getSolicitudes, approveSolicitud, denySolicitud } from '../services/solicitudService';
 
-// Datos de solicitudes de ejemplo
+// Datos de solicitudes de ejemplo (fallback inicial mientras carga API)
 const solicitudesIniciales = [
   {
     id: 1,
@@ -67,12 +68,76 @@ const solicitudesIniciales = [
 
 export default function ListadoSolicitudScreen() {
   const [filtroActivo, setFiltroActivo] = useState('todas');
-  const [solicitudes, setSolicitudes] = useState(solicitudesIniciales);
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
+  const [errorSolicitudes, setErrorSolicitudes] = useState(null);
   const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
   const [modalRechazoVisible, setModalRechazoVisible] = useState(false);
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState(null);
   const [motivoRechazo, setMotivoRechazo] = useState('');
   const [motivoSeleccionado, setMotivoSeleccionado] = useState('');
+  const [processingIds, setProcessingIds] = useState([]); // ids en proceso aprobar/negar
+
+  // Cargar solicitudes desde API
+  const cargarSolicitudes = async () => {
+    setLoadingSolicitudes(true);
+    setErrorSolicitudes(null);
+    try {
+      const data = await getSolicitudes();
+      const normalizarSolicitud = (item) => {
+        const id = item.id || item.id_solicitud || item.idSolicitud;
+        // Numero
+        const numero = item.numero || item.numero_solicitud || (id ? String(id).padStart(3, '0') : '---');
+        // Estado (uniformar a valores usados en UI)
+        let estado = item.estado || item.estado_solicitud || item.estadoSolicitud || 'sin_contestar';
+        if (estado === 'aprobada') estado = 'aprobadas';
+        if (estado === 'rechazada') estado = 'rechazadas';
+        // Solicitante puede ser objeto
+        let solicitanteValor = item.solicitante || item.solicitante_data || item.solicitanteInfo || item.nombre_solicitante;
+        if (solicitanteValor && typeof solicitanteValor === 'object') {
+          const partes = [solicitanteValor.nombre, solicitanteValor.apellido, solicitanteValor.apellidos].filter(Boolean);
+          solicitanteValor = partes.join(' ').trim() || 'N/D';
+        }
+        if (!solicitanteValor || typeof solicitanteValor !== 'string') {
+          solicitanteValor = 'N/D';
+        }
+        // Productos puede ser array de objetos o strings
+        let productosArray = [];
+        const productosRaw = item.productos || item.detalle_productos || item.items || [];
+        if (Array.isArray(productosRaw)) {
+          productosArray = productosRaw.map(p => {
+            if (typeof p === 'string') return p;
+            if (p && typeof p === 'object') return p.nombre || p.descripcion || p.titulo || 'Producto';
+            return 'Producto';
+          });
+        }
+        return {
+          id: id || Math.random(), // fallback para evitar key undefined
+          numero,
+          estado,
+          fecha: item.fecha || item.created_at || item.updated_at || '',
+            solicitante: solicitanteValor,
+          email: item.email || item.correo || (item.solicitante && item.solicitante.email) || 'N/D',
+          ci: item.ci || item.documento || (item.solicitante && item.solicitante.ci) || 'N/D',
+          direccion: item.direccion || item.ubicacion || item.domicilio || 'N/D',
+          fechaTexto: item.fecha_formateada || item.fecha || item.created_at || '',
+          productos: productosArray,
+        };
+      };
+      const normalizadas = (data || []).map(normalizarSolicitud);
+      setSolicitudes(normalizadas.length ? normalizadas : solicitudesIniciales);
+    } catch (e) {
+      setErrorSolicitudes('No se pudieron cargar las solicitudes');
+      // Fallback datos locales
+      setSolicitudes(solicitudesIniciales);
+    } finally {
+      setLoadingSolicitudes(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarSolicitudes();
+  }, []);
 
   const filtros = [
     { id: 'todas', label: 'Todas', icon: 'list' },
@@ -132,18 +197,18 @@ export default function ListadoSolicitudScreen() {
     setModalDetalleVisible(true);
   };
 
-  const aprobar = id => {
-    setSolicitudes(prev =>
-      prev.map(s =>
-        s.id === id
-          ? { ...s, estado: 'aprobadas' }
-          : s,
-      ),
-    );
-    Alert.alert(
-      'Éxito',
-      `Solicitud #${String(id).padStart(3, '0')} aprobada exitosamente`,
-    );
+  const aprobar = async id => {
+    if (processingIds.includes(id)) return;
+    setProcessingIds(prev => [...prev, id]);
+    try {
+      await approveSolicitud(id);
+      setSolicitudes(prev => prev.map(s => (s.id === id ? { ...s, estado: 'aprobadas' } : s)));
+      Alert.alert('Éxito', `Solicitud #${String(id).padStart(3, '0')} aprobada exitosamente`);
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo aprobar la solicitud');
+    } finally {
+      setProcessingIds(prev => prev.filter(pid => pid !== id));
+    }
   };
 
   const rechazar = id => {
@@ -164,28 +229,30 @@ export default function ListadoSolicitudScreen() {
     }
   };
 
-  const confirmarRechazo = () => {
+  const confirmarRechazo = async () => {
     if (!motivoRechazo) {
       Alert.alert('Error', 'Por favor selecciona un motivo de rechazo');
       return;
     }
 
     if (solicitudSeleccionada) {
-      setSolicitudes(prev =>
-        prev.map(s =>
-          s.id === solicitudSeleccionada.id
-            ? { ...s, estado: 'rechazadas' }
-            : s,
-        ),
-      );
-      Alert.alert(
-        'Éxito',
-        `Solicitud #${solicitudSeleccionada.numero} rechazada exitosamente`,
-      );
-      setModalRechazoVisible(false);
-      setMotivoRechazo('');
-      setMotivoSeleccionado('');
-      setSolicitudSeleccionada(null);
+      const id = solicitudSeleccionada.id;
+      if (!processingIds.includes(id)) {
+        setProcessingIds(prev => [...prev, id]);
+        try {
+          await denySolicitud(id);
+          setSolicitudes(prev => prev.map(s => (s.id === id ? { ...s, estado: 'rechazadas' } : s)));
+          Alert.alert('Éxito', `Solicitud #${solicitudSeleccionada.numero} rechazada exitosamente`);
+          setModalRechazoVisible(false);
+          setMotivoRechazo('');
+          setMotivoSeleccionado('');
+          setSolicitudSeleccionada(null);
+        } catch (e) {
+          Alert.alert('Error', 'No se pudo rechazar la solicitud');
+        } finally {
+          setProcessingIds(prev => prev.filter(pid => pid !== id));
+        }
+      }
     }
   };
 
@@ -285,6 +352,20 @@ export default function ListadoSolicitudScreen() {
       </View>
 
       {/* Lista de Solicitudes */}
+      {loadingSolicitudes && (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Cargando solicitudes...</Text>
+        </View>
+      )}
+      {errorSolicitudes && !loadingSolicitudes && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{errorSolicitudes}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={cargarSolicitudes}>
+            <Text style={styles.retryButtonText}>Reintentar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {!loadingSolicitudes && (
       <ScrollView style={styles.solicitudesContainer}>
         <View style={styles.solicitudesGrid}>
           {solicitudesFiltradas.map(solicitud => (
@@ -425,8 +506,9 @@ export default function ListadoSolicitudScreen() {
                 {solicitud.estado === 'sin_contestar' && (
                   <>
                     <TouchableOpacity
-                      style={styles.btnAprobar}
+                      style={[styles.btnAprobar, processingIds.includes(solicitud.id) && styles.btnDisabled]}
                       onPress={() => aprobar(solicitud.id)}
+                      disabled={processingIds.includes(solicitud.id)}
                     >
                       <FontAwesome5
                         name="check"
@@ -434,12 +516,13 @@ export default function ListadoSolicitudScreen() {
                         color={adminlteColors.secondary}
                         style={{ marginRight: 4 }}
                       />
-                      <Text style={styles.btnAprobarText}>Aprobar</Text>
+                      <Text style={styles.btnAprobarText}>{processingIds.includes(solicitud.id) ? 'Procesando...' : 'Aprobar'}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={styles.btnRechazar}
+                      style={[styles.btnRechazar, processingIds.includes(solicitud.id) && styles.btnDisabled]}
                       onPress={() => rechazar(solicitud.id)}
+                      disabled={processingIds.includes(solicitud.id)}
                     >
                       <FontAwesome5
                         name="times"
@@ -447,7 +530,7 @@ export default function ListadoSolicitudScreen() {
                         color="#ffffff"
                         style={{ marginRight: 4 }}
                       />
-                      <Text style={styles.btnRechazarText}>Rechazar</Text>
+                      <Text style={styles.btnRechazarText}>{processingIds.includes(solicitud.id) ? 'Procesando...' : 'Rechazar'}</Text>
                     </TouchableOpacity>
                   </>
                 )}
@@ -456,6 +539,7 @@ export default function ListadoSolicitudScreen() {
           ))}
         </View>
       </ScrollView>
+      )}
 
       {/* Modal Detalle de Solicitud */}
       <Modal
@@ -830,6 +914,39 @@ const styles = StyleSheet.create({
   btnRechazarText: {
     color: '#ffffff',
     fontSize: 12,
+    fontWeight: '500',
+  },
+  btnDisabled: {
+    opacity: 0.6,
+  },
+  loadingContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: adminlteColors.dark,
+    marginBottom: 8,
+  },
+  errorContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 14,
+    color: adminlteColors.danger,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: adminlteColors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 4,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
     fontWeight: '500',
   },
   // Modal styles

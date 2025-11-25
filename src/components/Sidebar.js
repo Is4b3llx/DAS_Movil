@@ -10,12 +10,7 @@ const menuItems = [
     icon: 'tachometer-alt',
     route: 'Dashboard',
   },
-  {
-    id: 'solicitud',
-    label: 'Solicitar Insumos',
-    icon: 'file-alt',
-    route: 'Solicitud',
-  },
+  
   {
     id: 'paquete',
     label: 'Paquetes',
