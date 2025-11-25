@@ -137,7 +137,7 @@ export default function VehiculosScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderTitle}>
-            Listado de Vehículos Registrados
+            Vehículos Registrados
           </Text>
           <TouchableOpacity
             style={styles.btnCrear}
@@ -149,7 +149,7 @@ export default function VehiculosScreen() {
               color="#ffffff"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.btnCrearText}>Crear Vehículo</Text>
+            <Text style={styles.btnCrearText}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -23,11 +23,6 @@ const menuItems = [
     icon: 'list',
     route: 'ListadoSolicitud',
   },
-  
- 
-
- 
-  
  
   {
     id: 'licencias',
@@ -95,7 +90,6 @@ export default function Sidebar({ isVisible, onClose, navigation }) {
           useNativeDriver: true,
         }),
       ]).start(() => {
-        // Solo ocultar después de que la animación termine
         if (!isVisible) {
           setShouldRender(false);
         }
@@ -114,7 +108,6 @@ export default function Sidebar({ isVisible, onClose, navigation }) {
 
   return (
     <>
-      {/* Overlay para cerrar al tocar fuera */}
       <Animated.View
         style={[
           styles.overlay,
@@ -130,7 +123,6 @@ export default function Sidebar({ isVisible, onClose, navigation }) {
         />
       </Animated.View>
       
-      {/* Sidebar */}
       <Animated.View
         style={[
           styles.sidebar,
@@ -140,7 +132,7 @@ export default function Sidebar({ isVisible, onClose, navigation }) {
         ]}
       >
         <View style={styles.sidebarHeader}>
-          <Text style={styles.sidebarTitle}>Alas Chiquitanas</Text>
+          <Text style={styles.sidebarTitle}>D.A.S</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <FontAwesome5 name="times" size={18} color="#ffffff" />
           </TouchableOpacity>
@@ -184,6 +176,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     zIndex: 998,
+    paddingTop:10,
   },
   sidebar: {
     position: 'absolute',
@@ -218,7 +211,8 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   menuSection: {
-    paddingVertical: 8,
+    paddingVertical: 60,
+    
   },
   menuSectionTitle: {
     fontSize: 11,

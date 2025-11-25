@@ -70,11 +70,11 @@ export default function SolicitudScreen() {
     lng: -63.1821,
   });
   const [mapaMarkerPosition, setMapaMarkerPosition] = useState({
-    x: 150, // Posición inicial centrada (aproximadamente mitad de 300px)
+    x: 150, 
     y: 150,
   });
   const [mapaEntregaMarkerPosition, setMapaEntregaMarkerPosition] = useState({
-    x: 160, // Posición inicial centrada
+    x: 160,
     y: 160,
   });
 
@@ -94,7 +94,6 @@ export default function SolicitudScreen() {
       Alert.alert('Error', 'Por favor ingresa un código de búsqueda');
       return;
     }
-    // Simulación de búsqueda
     setResultadoBusqueda({
       codigo: codigoBusqueda.toUpperCase(),
       fecha: '05/10/2025',
@@ -217,7 +216,6 @@ export default function SolicitudScreen() {
   };
 
   const handleEnviar = () => {
-    // Validar campos requeridos
     const camposRequeridos = [
       'nombre',
       'apellido',
@@ -243,7 +241,6 @@ export default function SolicitudScreen() {
       return;
     }
 
-    // Validar productos
     const productosConCantidad = Object.keys(productosSeleccionados).filter(
       id => productosSeleccionados[id] > 0,
     );
@@ -256,7 +253,6 @@ export default function SolicitudScreen() {
       return;
     }
 
-    // Aquí harás el POST a tu API Laravel
     console.log('Formulario enviado:', form, productosSeleccionados);
     Alert.alert('Solicitud enviada', 'Simulación de envío de solicitud al backend DAS.');
   };
@@ -396,7 +392,6 @@ export default function SolicitudScreen() {
             </View>
           </View>
 
-          {/* Mapa simulado */}
           <View style={styles.row}>
             <View style={styles.colFull}>
               <Text style={styles.label}>Ubicación en el mapa</Text>
@@ -407,7 +402,6 @@ export default function SolicitudScreen() {
                     activeOpacity={1}
                     onPress={handleMapaPress}
                   >
-                    {/* Controles de zoom simulados */}
                     <View style={styles.mapZoom}>
                       <TouchableOpacity
                         style={styles.mapZoomBtn}

@@ -84,7 +84,7 @@ export default function LicenciasScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderTitle}>
-            Listado de Licencias Registradas
+            Tipos de Licencia
           </Text>
           <TouchableOpacity
             style={styles.btnCrear}

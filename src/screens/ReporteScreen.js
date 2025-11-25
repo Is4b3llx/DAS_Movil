@@ -97,8 +97,7 @@ export default function ReporteScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderTitle}>
-            Listado de Reportes Registrados
-          </Text>
+              Reportes Generados          </Text>
           <TouchableOpacity
             style={styles.btnCrear}
             onPress={() => setModalCrearVisible(true)}
@@ -109,7 +108,7 @@ export default function ReporteScreen() {
               color="#ffffff"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.btnCrearText}>Crear Reporte</Text>
+            <Text style={styles.btnCrearText}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>

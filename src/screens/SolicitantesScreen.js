@@ -109,7 +109,7 @@ export default function SolicitantesScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderTitle}>
-            Listado de Solicitantes Registrados
+            Solicitantes Registrados
           </Text>
           <TouchableOpacity
             style={styles.btnCrear}
@@ -121,7 +121,7 @@ export default function SolicitantesScreen() {
               color="#ffffff"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.btnCrearText}>Crear Solicitante</Text>
+            <Text style={styles.btnCrearText}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>

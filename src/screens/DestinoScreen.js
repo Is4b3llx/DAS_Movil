@@ -104,7 +104,7 @@ export default function DestinoScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderTitle}>
-            Listado de Destinos Registrados
+            Destinos
           </Text>
           <TouchableOpacity
             style={styles.btnCrear}
@@ -116,7 +116,7 @@ export default function DestinoScreen() {
               color="#ffffff"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.btnCrearText}>Crear Destino</Text>
+            <Text style={styles.btnCrearText}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -110,7 +110,7 @@ export default function SeguimientoPaqueteScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderTitle}>
-            Listado de Seguimientos Registrados
+            Seguimiento de Paquete
           </Text>
           <TouchableOpacity
             style={styles.btnCrear}
@@ -122,7 +122,7 @@ export default function SeguimientoPaqueteScreen() {
               color="#ffffff"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.btnCrearText}>Crear Seguimiento</Text>
+            <Text style={styles.btnCrearText}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>

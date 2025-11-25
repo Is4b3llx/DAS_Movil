@@ -69,7 +69,7 @@ export default function TipoEmergenciaScreen({ navigation }) {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderTitle}>
-            Listado de Tipos Registrados
+            Tipos de Emergencia
           </Text>
           <TouchableOpacity
             style={styles.btnCrear}
@@ -81,7 +81,7 @@ export default function TipoEmergenciaScreen({ navigation }) {
               color="#ffffff"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.btnCrearText}>Crear Tipo</Text>
+            <Text style={styles.btnCrearText}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -134,7 +134,7 @@ export default function ConductoresScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderTitle}>
-            Listado de Conductores Registrados
+            Conductores Registrados
           </Text>
           <TouchableOpacity
             style={styles.btnCrear}
@@ -146,7 +146,7 @@ export default function ConductoresScreen() {
               color="#ffffff"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.btnCrearText}>Crear Conductor</Text>
+            <Text style={styles.btnCrearText}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>

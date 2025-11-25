@@ -85,7 +85,7 @@ export default function MarcasScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderTitle}>
-            Listado de Marcas Registradas
+            Marcas de Vehiculo
           </Text>
           <TouchableOpacity
             style={styles.btnCrear}
@@ -98,7 +98,7 @@ export default function MarcasScreen() {
               color="#ffffff"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.btnCrearText}>Crear Marca</Text>
+            <Text style={styles.btnCrearText}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>

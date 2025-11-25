@@ -10,7 +10,6 @@ const axiosInstance = axios.create({
   },
 });
 
-// Obtener lista paginada de solicitudes
 export const getSolicitudes = async () => {
   try {
     const response = await axiosInstance.get('/solicitud');
@@ -23,7 +22,6 @@ export const getSolicitudes = async () => {
   }
 };
 
-// Aprobar solicitud
 export const approveSolicitud = async (id) => {
   try {
     const response = await axiosInstance.post(`/solicitud/${id}/aprobar`);
@@ -35,7 +33,6 @@ export const approveSolicitud = async (id) => {
   }
 };
 
-// Negar solicitud
 export const denySolicitud = async (id) => {
   try {
     const response = await axiosInstance.post(`/solicitud/${id}/negar`);

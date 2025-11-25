@@ -82,7 +82,7 @@ export default function RolesScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderTitle}>
-            Listado de Roles Registrados
+            Roles Registrados
           </Text>
           <TouchableOpacity
             style={styles.btnCrear}
@@ -94,7 +94,7 @@ export default function RolesScreen() {
               color="#ffffff"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.btnCrearText}>Crear Rol</Text>
+            <Text style={styles.btnCrearText}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>

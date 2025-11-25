@@ -92,7 +92,7 @@ export default function UbicacionesScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderTitle}>
-            Listado de Ubicaciones Registradas
+            Ubicaciones
           </Text>
           <TouchableOpacity
             style={styles.btnCrear}
@@ -104,7 +104,7 @@ export default function UbicacionesScreen() {
               color="#ffffff"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.btnCrearText}>Crear Ubicación</Text>
+            <Text style={styles.btnCrearText}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>

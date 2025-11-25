@@ -84,7 +84,7 @@ export default function TipoVehiculoScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderTitle}>
-            Listado de Tipos de Vehículo Registrados
+            Tipos de Vehículo Registrados
           </Text>
           <TouchableOpacity
             style={styles.btnCrear}
@@ -96,7 +96,7 @@ export default function TipoVehiculoScreen() {
               color="#ffffff"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.btnCrearText}>Crear Tipo Vehículo</Text>
+            <Text style={styles.btnCrearText}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>
