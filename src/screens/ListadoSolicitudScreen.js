@@ -86,14 +86,14 @@ export default function ListadoSolicitudScreen() {
       const data = await getSolicitudes();
       const normalizarSolicitud = (item) => {
         const id = item.id || item.id_solicitud || item.idSolicitud;
-        // Numero
+        const codigoSolicitud =item.codigo_seguimiento ?? null;
         const numero = item.numero || item.numero_solicitud || (id ? String(id).padStart(3, '0') : '---');
-        // Estado (uniformar a valores usados en UI)
+
         let estado = item.estado || item.estado_solicitud || item.estadoSolicitud || 'pendiente';
         if (estado === 'aprobada') estado = 'aprobadas';
         if (estado === 'rechazada' || estado === 'negada') estado = 'rechazadas';
         if (!estado || estado === 'sin_contestar') estado = 'pendiente';
-        // Solicitante puede ser objeto
+
         let solicitanteValor = item.solicitante || item.solicitante_data || item.solicitanteInfo || item.nombre_solicitante;
         if (solicitanteValor && typeof solicitanteValor === 'object') {
           const partes = [solicitanteValor.nombre, solicitanteValor.apellido, solicitanteValor.apellidos].filter(Boolean);
@@ -102,7 +102,6 @@ export default function ListadoSolicitudScreen() {
         if (!solicitanteValor || typeof solicitanteValor !== 'string') {
           solicitanteValor = 'N/D';
         }
-        // Productos/insumos puede venir como texto (insumos_necesarios) o como array
         let productosArray = [];
         const productosRaw = item.productos || item.detalle_productos || item.items || item.insumos_necesarios || [];
         if (typeof productosRaw === 'string') {
@@ -117,14 +116,14 @@ export default function ListadoSolicitudScreen() {
             return 'Producto';
           });
         }
-        // Destino (ubicación) puede venir anidado
         const destinoObj = item.destino || item.destino_data || item.ubicacion_destino || null;
         const direccionDestino = destinoObj && (destinoObj.direccion || destinoObj.ubicacion || destinoObj.zona);
         const comunidadDestino = destinoObj && (destinoObj.comunidad || destinoObj.barrio);
         const provinciaDestino = destinoObj && destinoObj.provincia;
 
         return {
-          id: id || Math.random(), // fallback para evitar key undefined
+          id: id || Math.random(),
+          codigoSolicitud,
           numero,
           estado,
           fecha: item.fecha || item.created_at || item.updated_at || '',
@@ -142,7 +141,6 @@ export default function ListadoSolicitudScreen() {
       setSolicitudes(normalizadas.length ? normalizadas : solicitudesIniciales);
     } catch (e) {
       setErrorSolicitudes('No se pudieron cargar las solicitudes');
-      // Fallback datos locales
       setSolicitudes(solicitudesIniciales);
     } finally {
       setLoadingSolicitudes(false);
@@ -256,7 +254,7 @@ export default function ListadoSolicitudScreen() {
         try {
           await denySolicitud(id);
           setSolicitudes(prev => prev.map(s => (s.id === id ? { ...s, estado: 'rechazadas' } : s)));
-          Alert.alert('Éxito', `Solicitud #${solicitudSeleccionada.numero} rechazada exitosamente`);
+          Alert.alert('Éxito', `Solicitud #${solicitudSeleccionada.codigoSolicitud} rechazada exitosamente`);
           setModalRechazoVisible(false);
           setMotivoRechazo('');
           setMotivoSeleccionado('');
@@ -270,6 +268,49 @@ export default function ListadoSolicitudScreen() {
     }
   };
 
+  const formatFechaSolicitud = (raw) => {
+  if (!raw) return '—';
+  if (/[a-zA-Z]/.test(raw) && !raw.includes('T')) {
+    return raw;
+  }
+
+  let iso = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    iso = iso + 'T00:00:00Z';
+  } else {
+    iso = iso.replace(/\s/, 'T');
+    iso = iso.replace(/\.\d+Z$/, 'Z');
+  }
+
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) {
+    return raw;
+  }
+
+  try {
+    const deviceTz =
+      Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/La_Paz';
+
+    return new Intl.DateTimeFormat('es-BO', {
+      timeZone: deviceTz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  } catch (e) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const d = pad(date.getDate());
+    const m = pad(date.getMonth() + 1);
+    const y = date.getFullYear();
+    const h = pad(date.getHours());
+    const min = pad(date.getMinutes());
+    return `${d}/${m}/${y} ${h}:${min}`;
+  }
+};
+
+
   const obtenerColorBorde = estado => {
     switch (estado) {
       case 'aprobadas':
@@ -281,7 +322,7 @@ export default function ListadoSolicitudScreen() {
         return adminlteColors.danger;
       case 'sin_contestar':
       case 'pendiente':
-        return '#ffc107'; // warning amarillo
+        return '#ffc107';
       default:
         return '#dee2e6';
     }
@@ -298,7 +339,7 @@ export default function ListadoSolicitudScreen() {
         return adminlteColors.danger;
       case 'sin_contestar':
       case 'pendiente':
-        return '#ffc107'; // warning amarillo
+        return '#ffc107';
       default:
         return adminlteColors.secondary;
     }
@@ -414,7 +455,7 @@ export default function ListadoSolicitudScreen() {
                     style={{ marginRight: 6 }}
                   />
                   <Text style={styles.solicitudCardTitle}>
-                    Solicitud #{solicitud.numero}
+                    Solicitud #{solicitud.codigoSolicitud}
                   </Text>
                 </View>
                 <View
@@ -494,7 +535,7 @@ export default function ListadoSolicitudScreen() {
                   <Text style={styles.solicitudInfoLabel}>Fecha:</Text>
                 </View>
                 <Text style={styles.solicitudInfoValueMuted}>
-                  {solicitud.fechaTexto}
+                   {formatFechaSolicitud(solicitud.fechaTexto || solicitud.fecha)}  
                 </Text>
 
                 <View style={styles.solicitudInfoRow}>
@@ -567,7 +608,6 @@ export default function ListadoSolicitudScreen() {
       </ScrollView>
       )}
 
-      {/* Modal Detalle de Solicitud (overlay centrado) */}
       <Modal
         visible={modalDetalleVisible}
         animationType="fade"
@@ -597,9 +637,9 @@ export default function ListadoSolicitudScreen() {
             <ScrollView style={styles.modalBodyCard}>
               {solicitudSeleccionada ? (
                 <View style={styles.detalleContent}>
-                  <View style={styles.alertInfo}>
+                  <View>
                     <Text style={styles.alertInfoTitle}>
-                      Detalles de la Solicitud #{solicitudSeleccionada.numero}
+                      Detalles de la Solicitud #{solicitudSeleccionada.codigoSolicitud}
                     </Text>
                     <View style={styles.detalleSection}>
                       <Text style={styles.detalleLabel}>Solicitante:</Text>
@@ -628,7 +668,9 @@ export default function ListadoSolicitudScreen() {
                     <View style={styles.detalleSection}>
                       <Text style={styles.detalleLabel}>Fecha:</Text>
                       <Text style={styles.detalleValue}>
-                        {solicitudSeleccionada.fechaTexto}
+                        {formatFechaSolicitud(
+                            solicitudSeleccionada.fechaTexto || solicitudSeleccionada.fecha
+                          )}
                       </Text>
                     </View>
                     <View style={styles.detalleSection}>
