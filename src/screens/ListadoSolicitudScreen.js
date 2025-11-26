@@ -657,14 +657,14 @@ export default function ListadoSolicitudScreen() {
               >
                 <Text style={styles.modalFooterButtonText}>Cerrar</Text>
               </TouchableOpacity>
-              <TouchableOpacity
+              {/*<TouchableOpacity
                 style={styles.modalFooterButtonPrimary}
                 onPress={() => {
                   Alert.alert('Imprimir', 'Funcionalidad de impresión');
                 }}
               >
                 <Text style={styles.modalFooterButtonText}>Imprimir</Text>
-              </TouchableOpacity>
+              </TouchableOpacity>*/}
             </View>
           </View>
         </View>
