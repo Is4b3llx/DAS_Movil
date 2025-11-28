@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -14,9 +14,11 @@ import { useNavigation } from '@react-navigation/native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { adminlteColors } from '../theme/adminlte';
 import { login } from '../services/authService';
+import { AuthContext } from '../context/AuthContext';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
+  const { login: setAuthUser } = useContext(AuthContext);
 
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
@@ -30,7 +32,8 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await login(correo.trim(), password);
+      const { token, user } = await login(correo.trim(), password);
+       await setAuthUser(user);
       navigation.reset({
         index: 0,
         routes: [{ name: 'ListadoSolicitud' }],
@@ -103,7 +106,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <Text style={styles.helperText}>
-          Usa las mismas credenciales que en el panel web.
+          Usa las credenciales que ingresaste en la web.
         </Text>
       </View>
     </KeyboardAvoidingView>

@@ -38,13 +38,6 @@ export default function DashboardScreen() {
           footer="Ver alertas"
         />
       </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Contenido de prueba</Text>
-        <Text style={styles.cardText}>
-          Aquí luego vas a poner tus tablas/listas conectadas al backend DAS.
-        </Text>
-      </View>
     </AdminLayout>
   );
 }

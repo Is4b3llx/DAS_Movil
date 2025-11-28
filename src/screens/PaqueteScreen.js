@@ -258,7 +258,7 @@ useEffect(() => {
 
   const date = new Date(clean);
   if (isNaN(date.getTime())) {
-    return isoString; // fallback bruto
+    return isoString;
   }
 
   try {
@@ -340,7 +340,6 @@ useEffect(() => {
                 </View>
                 <Text style={styles.valuePrimary}>{p.estadoNombre || '—'}</Text>
 
-                {/* Conductor */}
                 <View style={styles.row}>
                   <FontAwesome5
                     name="user"
@@ -354,7 +353,6 @@ useEffect(() => {
                   {getConductorLabelById(p.id_conductor)}
                 </Text>
 
-                {/* Vehículo */}
                 <View style={styles.row}>
                   <FontAwesome5
                     name="truck"
@@ -368,7 +366,6 @@ useEffect(() => {
                   {getVehiculoLabelById(p.id_vehiculo)}
                 </Text>
 
-                {/* Ubicación */}
                 <View style={styles.row}>
                   <FontAwesome5
                     name="map-marker-alt"
@@ -380,7 +377,6 @@ useEffect(() => {
                 </View>
                 <Text style={styles.valuePrimary}>{p.ubicacionActual || '—'}</Text>
 
-                {/* Fecha aprobación */}
                 <View style={styles.row}>
                   <FontAwesome5
                     name="calendar-plus"
@@ -392,7 +388,6 @@ useEffect(() => {
                 </View>
                 <Text style={styles.valueMuted}>{formatFechaAprobacion(p.fechaAprobacion) || '—'}</Text>
 
-                {/* Fecha entrega */}
                 <View style={styles.row}>
                   <FontAwesome5
                     name="calendar-check"
@@ -402,10 +397,9 @@ useEffect(() => {
                   />
                   <Text style={styles.label}>Fecha Entrega:</Text>
                 </View>
-                <Text style={styles.valueMuted}>{p.fechaEntrega || '(vacío)'}</Text>
+                <Text style={styles.valueMuted}>{p.fechaEntrega || '-'}</Text>
               </View>
 
-              {/* Botón ACTUALIZAR */}
               <TouchableOpacity
                 style={styles.btnEditarPaquete}
                 onPress={() => {
@@ -436,7 +430,6 @@ useEffect(() => {
         </View>
       </ScrollView>
 
-      {/* Modal Actualizar Paquete */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -471,7 +464,6 @@ useEffect(() => {
           </View>
 
           <ScrollView style={styles.modalBody}>
-            {/* Código (solo lectura) */}
             {paqueteActual && (
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Código</Text>
@@ -483,7 +475,6 @@ useEffect(() => {
               </View>
             )}
 
-            {/* Fecha Aprobación (solo lectura) */}
             {paqueteActual && (
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Fecha Aprobación</Text>
@@ -518,7 +509,6 @@ useEffect(() => {
               </Text>
             </View>
 
-            {/* CONDUCTOR (dropdown simple) */}
 <View style={styles.formGroup}>
   <Text style={styles.label}>Conductor asignado (opcional)</Text>
 
@@ -540,7 +530,6 @@ useEffect(() => {
   </Text>
 </View>
 
-{/* VEHÍCULO (dropdown simple) */}
 <View style={styles.formGroup}>
   <Text style={styles.label}>Vehículo asignado</Text>
 
@@ -563,7 +552,6 @@ useEffect(() => {
 </View>
 
 
-            {/* ZONA */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Zona o Comunidad</Text>
               <TextInput
@@ -575,7 +563,6 @@ useEffect(() => {
               />
             </View>
 
-            {/* MAPA + COORDENADAS BLOQUEADAS */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Ubicación actual (automática)</Text>
 
@@ -615,19 +602,17 @@ useEffect(() => {
               ) : null}
             </View>
 
-            {/* FECHA ENTREGA */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Fecha Entrega (opcional)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="YYYY-MM-DD (o dejar vacío)"
+                placeholder="YYYY-MM-DD"
                 value={fechaEntrega}
                 onChangeText={setFechaEntrega}
                 placeholderTextColor={adminlteColors.muted}
               />
             </View>
 
-            {/* IMAGEN (obligatoria) */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Imagen (obligatoria)</Text>
 
@@ -653,13 +638,6 @@ useEffect(() => {
                   resizeMode="cover"
                 />
               )}
-            </View>
-
-            <View style={styles.helperBox}>
-              <Text style={styles.helperText}>
-                La ubicación se genera con tu ubicación actual y la fecha de
-                aprobación se mantiene igual que en el sistema web.
-              </Text>
             </View>
           </ScrollView>
 

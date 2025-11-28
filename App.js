@@ -25,6 +25,8 @@ import RolesScreen from './src/screens/RolesScreen';
 
 import LoginScreen from './src/screens/LoginScreen';
 import { getStoredSession } from './src/services/authService';
+import { AuthProvider } from './src/context/AuthContext';
+import { AdminOnly } from './src/navigation/ProtectedScreens';
 
 const Stack = createNativeStackNavigator();
 
@@ -56,8 +58,9 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
+    <AuthProvider>
+      <SafeAreaProvider>
+        <NavigationContainer>
         <StatusBar style="light" />
         <Stack.Navigator
           initialRouteName={initialRoute}
@@ -76,7 +79,7 @@ export default function App() {
 
         <Stack.Screen
           name="Dashboard"
-          component={DashboardScreen}
+          component={AdminOnly(DashboardScreen)}
           options={{ title: 'Dashboard' }}
         />
         <Stack.Screen
@@ -96,12 +99,12 @@ export default function App() {
         />
         <Stack.Screen
           name="TipoEmergencia"
-          component={TipoEmergenciaScreen}
+          component={AdminOnly(TipoEmergenciaScreen)}
           options={{ title: 'Listado de Solicitudes' }}
         />
          <Stack.Screen
           name="Estado"
-          component={EstadoScreen}
+          component={AdminOnly(TipoEmergenciaScreen)}
           options={{ title: 'Gestión de Estados' }}
         />
         <Stack.Screen
@@ -126,7 +129,7 @@ export default function App() {
         />
         <Stack.Screen
           name="Reporte"
-          component={ReporteScreen}
+          component={AdminOnly(ReporteScreen)}
           options={{ title: 'Gestión de Reportes' }}
         />
         <Stack.Screen
@@ -136,7 +139,7 @@ export default function App() {
         />
         <Stack.Screen
           name="Licencias"
-          component={LicenciasScreen}
+          component={AdminOnly(LicenciasScreen)}
           options={{ title: 'Gestión de Licencias' }}
         />
         <Stack.Screen
@@ -161,11 +164,12 @@ export default function App() {
         />
         <Stack.Screen
           name="Roles"
-          component={RolesScreen}
+          component={AdminOnly(RolesScreen)}
           options={{ title: 'Gestión de Roles' }}
         />
       </Stack.Navigator>
       </NavigationContainer>
-    </SafeAreaProvider>
+      </SafeAreaProvider>
+  </AuthProvider>
   );
 }

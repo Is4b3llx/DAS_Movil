@@ -1,16 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Modal } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { adminlteColors } from '../theme/adminlte';
-import { logout } from '../services/authService';
-const menuItems = [
+import { AuthContext } from '../context/AuthContext';
+
+const adminMenu = [
   {
     id: 'dashboard',
     label: 'Dashboard',
     icon: 'tachometer-alt',
     route: 'Dashboard',
   },
-  
   {
     id: 'paquete',
     label: 'Paquetes',
@@ -23,7 +23,6 @@ const menuItems = [
     icon: 'list',
     route: 'ListadoSolicitud',
   },
- 
   {
     id: 'licencias',
     label: 'Gestión de Licencias',
@@ -54,7 +53,51 @@ const menuItems = [
     icon: 'truck-monster',
     route: 'TipoVehiculo',
   },
- 
+  {
+    id: 'roles',
+    label: 'Gestión de Roles',
+    icon: 'user-shield',
+    route: 'Roles',
+  },
+];
+
+const voluntarioMenu = [
+  {
+    id: 'paquete',
+    label: 'Paquetes',
+    icon: 'box',
+    route: 'Paquete',
+  },
+  {
+    id: 'listadoSolicitud',
+    label: 'Listado de Solicitudes',
+    icon: 'list',
+    route: 'ListadoSolicitud',
+  },
+  {
+    id: 'conductores',
+    label: 'Gestión de Conductores',
+    icon: 'id-badge',
+    route: 'Conductores',
+  },
+  {
+    id: 'marcas',
+    label: 'Gestión de Marcas',
+    icon: 'tag',
+    route: 'Marcas',
+  },
+  {
+    id: 'vehiculos',
+    label: 'Gestión de Vehículos',
+    icon: 'car',
+    route: 'Vehiculos',
+  },
+  {
+    id: 'tipoVehiculo',
+    label: 'Tipos de Vehículo',
+    icon: 'truck-monster',
+    route: 'TipoVehiculo',
+  },
 ];
 
 export default function Sidebar({ isVisible, onClose, navigation }) {
@@ -62,7 +105,8 @@ export default function Sidebar({ isVisible, onClose, navigation }) {
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const [shouldRender, setShouldRender] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
+  const { user, logout } = useContext(AuthContext);
+  const finalMenu = user?.administrador ? adminMenu : voluntarioMenu;
   useEffect(() => {
     if (isVisible) {
       setShouldRender(true);
@@ -161,7 +205,7 @@ export default function Sidebar({ isVisible, onClose, navigation }) {
         <ScrollView style={styles.sidebarBody}>
           <View style={styles.menuSection}>
             <Text style={styles.menuSectionTitle}>MENÚ PRINCIPAL</Text>
-            {menuItems.map(item => (
+            {finalMenu.map(item => (
               <TouchableOpacity
                 key={item.id}
                 style={styles.menuItem}

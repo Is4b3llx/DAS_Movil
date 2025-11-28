@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
+  TextInput,
   Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -14,7 +15,6 @@ import AdminLayout from '../components/AdminLayout';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { getSolicitudes, approveSolicitud, denySolicitud } from '../services/solicitudService';
 
-// Datos de solicitudes de ejemplo (fallback inicial mientras carga API)
 const solicitudesIniciales = [
   {
     id: 1,
@@ -92,7 +92,7 @@ export default function ListadoSolicitudScreen() {
         let estado = item.estado || item.estado_solicitud || item.estadoSolicitud || 'pendiente';
         if (estado === 'aprobada') estado = 'aprobadas';
         if (estado === 'rechazada' || estado === 'negada') estado = 'rechazadas';
-        if (!estado || estado === 'sin_contestar') estado = 'pendiente';
+        if (!estado || estado === 'pendiente') estado = 'pendientes';
 
         let solicitanteValor = item.solicitante || item.solicitante_data || item.solicitanteInfo || item.nombre_solicitante;
         if (solicitanteValor && typeof solicitanteValor === 'object') {
@@ -153,11 +153,11 @@ export default function ListadoSolicitudScreen() {
 
   const filtros = [
     { id: 'todas', label: 'Todas', icon: 'list' },
-    { id: 'recientes', label: 'Recientes', icon: 'clock' },
-    { id: 'antiguas', label: 'Antiguas', icon: 'history' },
+  //  { id: 'recientes', label: 'Recientes', icon: 'clock' },
+   // { id: 'antiguas', label: 'Antiguas', icon: 'history' },
     { id: 'aprobadas', label: 'Aprobadas', icon: 'check' },
     { id: 'rechazadas', label: 'Rechazadas', icon: 'times' },
-    { id: 'sin_contestar', label: 'Sin Contestar', icon: 'question' },
+    { id: 'pendientes', label: 'Pendiente', icon: 'question' },
   ];
 
   const motivosRechazo = [
@@ -188,21 +188,29 @@ export default function ListadoSolicitudScreen() {
     setFiltroActivo(filtro);
   };
 
-  const obtenerSolicitudesFiltradas = () => {
-    if (filtroActivo === 'todas') {
-      return solicitudes;
-    } else if (filtroActivo === 'recientes') {
-      return solicitudes.filter(
-        s => s.fecha === '2025-01-11' || s.fecha === '2025-01-10',
-      );
-    } else if (filtroActivo === 'antiguas') {
-      return solicitudes.filter(
-        s => s.fecha === '2025-01-08' || s.fecha === '2025-01-09',
-      );
-    } else {
-      return solicitudes.filter(s => s.estado === filtroActivo);
-    }
-  };
+const obtenerSolicitudesFiltradas = () => {
+  let resultado = [];
+
+  if (filtroActivo === 'todas') {
+    resultado = solicitudes;
+  } 
+  else if (filtroActivo === 'recientes') {
+    resultado = solicitudes.filter(
+      s => s.fecha >= '2025-01-10'  
+    );
+  } 
+  else if (filtroActivo === 'antiguas') {
+    resultado = solicitudes.filter(
+      s => s.fecha < '2025-01-10' 
+    );
+  } 
+  else {
+    resultado = solicitudes.filter(s => s.estado === filtroActivo);
+  }
+
+  return resultado.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+};
+
 
   const verDetalle = solicitud => {
     setSolicitudSeleccionada(solicitud);
@@ -738,27 +746,18 @@ export default function ListadoSolicitudScreen() {
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Motivo del rechazo:</Text>
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    selectedValue={motivoRechazo}
-                    onValueChange={actualizarMotivoSeleccionado}
-                    style={styles.picker}
-                  >
-                    {motivosRechazo.map((motivo, index) => (
-                      <Picker.Item
-                        key={index}
-                        label={motivo.label}
-                        value={motivo.value}
-                      />
-                    ))}
-                  </Picker>
-                </View>
+                              <TextInput
+                  style={styles.textInput}
+                  placeholder="Ingrese el motivo del rechazo"
+                  value={motivoRechazo}
+                  onChangeText={setMotivoRechazo}
+                />
               </View>
-
-              {motivoSeleccionado ? (
+              
+              {motivoRechazo ? (
                 <View style={styles.motivoSeleccionadoContainer}>
                   <Text style={styles.motivoSeleccionadoText}>
-                    Motivo seleccionado: {motivoSeleccionado}
+                    Motivo ingresado: {motivoRechazo}
                   </Text>
                 </View>
               ) : null}
