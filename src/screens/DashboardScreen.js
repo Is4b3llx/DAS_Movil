@@ -19,12 +19,15 @@ export default function DashboardScreen() {
 
       
       const mappedData = {
-        total: response.data.total || response.data.listadoSolicitud || 0, 
+        total: response.data.total || 0,
         aceptadas: response.data.aceptadas || 0,
         rechazadas: response.data.rechazadas || 0,
         tasa: response.data.tasa || 0,
         totalVoluntarios: response.data.totalVoluntarios || 0,
         voluntariosConductores: response.data.voluntariosConductores || 0,
+        totalPaquetes: response.data.totalPaquetes || 0,
+        paquetesEntregados: response.data.paquetesEntregados || 0,
+        paquetes: response.data.paquetes || [], 
       };
 
       console.log('Datos mapeados para el dashboard:', mappedData); 
@@ -85,6 +88,11 @@ export default function DashboardScreen() {
           <SmallBox color="teal" title="Voluntarios Conductores" value={data.voluntariosConductores}  />
         </View>
 
+        <View style={styles.row}>
+          <SmallBox color="primary" title="Total Paquetes" value={data.totalPaquetes}  />
+          <SmallBox color="success" title="Paquetes Entregados" value={data.paquetesEntregados}  />
+        </View>
+
         <View style={styles.cardContainer}>
           <View style={[styles.card, styles.shadow]}>
             <Text style={styles.cardTitle}>Resumen General</Text>
@@ -95,7 +103,48 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Aquí puedes agregar más secciones como gráficos o tablas */}
+        <View style={styles.cardContainer}>
+          <View style={[styles.card, styles.shadow]}>
+            <Text style={styles.cardTitle}>Paquetes Entregados</Text>
+            <ScrollView horizontal>
+              <View>
+                <View style={styles.tableHeaderRow}>
+                  <Text style={[styles.tableHeaderText, { flex: 1 }]}>ID Paquete</Text>
+                  <Text style={[styles.tableHeaderText, { flex: 2 }]}>Fecha Creación</Text>
+                  <Text style={[styles.tableHeaderText, { flex: 2 }]}>Fecha Entrega</Text>
+                  <Text style={[styles.tableHeaderText, { flex: 1, textAlign: 'right' }]}>Días de Entrega</Text>
+                </View>
+                {data.paquetes.length > 0 ? (
+                  data.paquetes.map((paq, index) => {
+                    const badgeStyle =
+                      paq.dias_entrega > 7
+                        ? styles.badgeDanger
+                        : paq.dias_entrega > 3
+                        ? styles.badgeWarning
+                        : styles.badgeSuccess;
+
+                    return (
+                      <View key={index} style={styles.tableRow}>
+                        <Text style={[styles.tableCell, { flex: 1 }]}>#{paq.id_paquete}</Text>
+                        <Text style={[styles.tableCell, { flex: 2 }]}>{paq.fecha_creacion}</Text>
+                        <Text style={[styles.tableCell, { flex: 2 }]}>{paq.fecha_entrega}</Text>
+                        <Text style={[styles.tableCell, { flex: 1, textAlign: 'right' }]}>
+                          <Text style={[styles.badge, badgeStyle]}>{Math.round(paq.dias_entrega * 10) / 10} días</Text>
+                        </Text>
+                      </View>
+                    );
+                  })
+                ) : (
+                  <View style={styles.tableRow}>
+                    <Text style={styles.noDataText}>No hay paquetes con fechas de entrega.</Text>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+
+       
       </ScrollView>
     </AdminLayout>
   );
@@ -120,6 +169,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
+    gap: 16, 
   },
   cardContainer: {
     marginTop: 20,
@@ -129,6 +179,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 16,
     marginBottom: 16,
+    marginHorizontal: 8, 
   },
   shadow: {
     shadowColor: '#000',
@@ -171,5 +222,56 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    backgroundColor: '#f8f9fa',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#dee2e6',
+  },
+  tableHeaderText: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#495057',
+    textTransform: 'uppercase', 
+    letterSpacing: 1, 
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#dee2e6',
+  },
+  tableCell: {
+    fontSize: 14,
+    color: '#212529',
+    lineHeight: 20, 
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    color: '#fff',
+    fontSize: 12,
+    overflow: 'hidden',
+  },
+  badgeSuccess: {
+    backgroundColor: '#28a745',
+  },
+  badgeWarning: {
+    backgroundColor: '#ffc107',
+  },
+  badgeDanger: {
+    backgroundColor: '#dc3545',
+  },
+  noDataText: {
+    fontSize: 14,
+    color: '#6c757d',
+    textAlign: 'center',
+    paddingVertical: 16,
+    letterSpacing: 0.5,
   },
 });
