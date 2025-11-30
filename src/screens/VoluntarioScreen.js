@@ -1,70 +1,116 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  ScrollView,
-  TextInput,
-  Alert,
-  Switch,
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch, ActivityIndicator, Modal,} from 'react-native';
 import { adminlteColors } from '../theme/adminlte';
 import AdminLayout from '../components/AdminLayout';
-import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-
-const voluntariosIniciales = [
-  {
-    id: 1,
-    nombre: 'Pedro',
-    apellido: 'Martínez',
-    correo: 'pedro.martinez@email.com',
-    telefono: '70123456',
-    ci: '12345678',
-    rol: 'Coordinador',
-    administrador: true,
-    activo: true,
-  },
-  {
-    id: 2,
-    nombre: 'Laura',
-    apellido: 'Fernández',
-    correo: 'laura.fernandez@email.com',
-    telefono: '71234567',
-    ci: '87654321',
-    rol: 'Voluntario',
-    administrador: false,
-    activo: true,
-  },
-  {
-    id: 3,
-    nombre: 'Miguel',
-    apellido: 'Torres',
-    correo: 'miguel.torres@email.com',
-    telefono: '72345678',
-    ci: '11223344',
-    rol: 'Conductor',
-    administrador: false,
-    activo: false,
-  },
-];
+import { FontAwesome5 } from '@expo/vector-icons';
+import {
+  fetchVoluntarios,
+  toggleAdminUser,
+  toggleActivoUser,
+} from '../services/VoluntarioService';
 
 export default function VoluntarioScreen() {
-  const [voluntarios, setVoluntarios] = useState(voluntariosIniciales);
+  const [voluntarios, setVoluntarios] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedVoluntario, setSelectedVoluntario] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
-  const toggleAdministrador = id => {
-    setVoluntarios(prev =>
-      prev.map(v =>
-        v.id === id ? { ...v, administrador: !v.administrador } : v
-      )
-    );
+  const formatFecha = (dateStr) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('es-BO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+  const loadVoluntarios = async () => {
+    try {
+      if (!refreshing) setLoading(true);
+      const data = await fetchVoluntarios();
+      setVoluntarios(data);
+    } catch (error) {
+      console.error('Error al cargar voluntarios:', error?.response?.data || error.message);
+      Alert.alert('Error', 'No se pudieron cargar los voluntarios.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const toggleActivo = id => {
-    setVoluntarios(prev =>
-      prev.map(v => (v.id === id ? { ...v, activo: !v.activo } : v))
-    );
+  useEffect(() => {
+    loadVoluntarios();
+  }, []);
+
+  const handleToggleAdmin = async voluntario => {
+    try {
+      setVoluntarios(prev =>
+        prev.map(v =>
+          v.id === voluntario.id
+            ? { ...v, administrador: !v.administrador }
+            : v
+        )
+      );
+      const res = await toggleAdminUser(voluntario.id);
+      if (typeof res.administrador !== 'undefined') {
+        setVoluntarios(prev =>
+          prev.map(v =>
+            v.id === voluntario.id
+              ? { ...v, administrador: !!res.administrador }
+              : v
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error al cambiar administrador:', error?.response?.data || error.message);
+      Alert.alert('Error', 'No se pudo cambiar el estado de administrador.');
+      setVoluntarios(prev =>
+        prev.map(v =>
+          v.id === voluntario.id
+            ? { ...v, administrador: !v.administrador }
+            : v
+        )
+      );
+    }
+  };
+
+  const handleToggleActivo = async voluntario => {
+    try {
+      setVoluntarios(prev =>
+        prev.map(v =>
+          v.id === voluntario.id
+            ? { ...v, activo: !v.activo }
+            : v
+        )
+      );
+      const res = await toggleActivoUser(voluntario.id);
+      if (typeof res.activo !== 'undefined') {
+        setVoluntarios(prev =>
+          prev.map(v =>
+            v.id === voluntario.id
+              ? { ...v, activo: !!res.activo }
+              : v
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error al cambiar activo:', error?.response?.data || error.message);
+      Alert.alert('Error', 'No se pudo cambiar el estado activo.');
+      setVoluntarios(prev =>
+        prev.map(v =>
+          v.id === voluntario.id
+            ? { ...v, activo: !v.activo }
+            : v
+        )
+      );
+    }
+  };
+
+  const handleMostrar = voluntario => {
+    setSelectedVoluntario(voluntario);
+    setShowDetailModal(true);
   };
 
   const obtenerColorBorde = index => {
@@ -81,163 +127,210 @@ export default function VoluntarioScreen() {
 
   return (
     <AdminLayout>
-      <Text style={styles.pageTitle}>Gestión de Voluntarios</Text>
+      <Text style={styles.pageTitle}>Voluntarios</Text>
 
-      {/* Lista de Voluntarios */}
-      <ScrollView style={styles.voluntariosContainer}>
-        <View style={styles.voluntariosGrid}>
-          {voluntarios.map((voluntario, index) => (
-            <View
-              key={voluntario.id}
-              style={[
-                styles.voluntarioCard,
-                {
-                  borderTopWidth: 3,
-                  borderTopColor: obtenerColorBorde(index),
-                },
-              ]}
-            >
-              <View style={styles.voluntarioCardHeader}>
-                <View style={styles.voluntarioCardHeaderContent}>
-                  <FontAwesome5
-                    name="user-circle"
-                    size={14}
-                    color={adminlteColors.dark}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.voluntarioCardTitle}>
-                    {voluntario.nombre} {voluntario.apellido}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.voluntarioCardBody}>
-                <View style={styles.voluntarioInfoRow}>
-                  <FontAwesome5
-                    name="user"
-                    size={12}
-                    color={adminlteColors.primary}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.voluntarioInfoLabel}>Nombre:</Text>
-                </View>
-                <Text style={styles.voluntarioInfoValue}>
-                  {voluntario.nombre}
-                </Text>
-
-                <View style={styles.voluntarioInfoRow}>
-                  <FontAwesome5
-                    name="user-tag"
-                    size={12}
-                    color={adminlteColors.muted}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.voluntarioInfoLabel}>Apellido:</Text>
-                </View>
-                <Text style={styles.voluntarioInfoValueMuted}>
-                  {voluntario.apellido}
-                </Text>
-
-                <View style={styles.voluntarioInfoRow}>
-                  <FontAwesome5
-                    name="envelope"
-                    size={12}
-                    color={adminlteColors.muted}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.voluntarioInfoLabel}>Correo:</Text>
-                </View>
-                <Text style={styles.voluntarioInfoValueMuted}>
-                  {voluntario.correo}
-                </Text>
-
-                <View style={styles.voluntarioInfoRow}>
-                  <FontAwesome5
-                    name="phone"
-                    size={12}
-                    color={adminlteColors.muted}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.voluntarioInfoLabel}>Teléfono:</Text>
-                </View>
-                <Text style={styles.voluntarioInfoValueMuted}>
-                  {voluntario.telefono}
-                </Text>
-
-                <View style={styles.voluntarioInfoRow}>
-                  <FontAwesome5
-                    name="id-card"
-                    size={12}
-                    color={adminlteColors.muted}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.voluntarioInfoLabel}>CI:</Text>
-                </View>
-                <Text style={styles.voluntarioInfoValueMuted}>
-                  {voluntario.ci}
-                </Text>
-
-                <View style={styles.voluntarioInfoRow}>
-                  <FontAwesome5
-                    name="briefcase"
-                    size={12}
-                    color={adminlteColors.muted}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.voluntarioInfoLabel}>Rol:</Text>
-                </View>
-                <Text style={styles.voluntarioInfoValueMuted}>
-                  {voluntario.rol}
-                </Text>
-
-                {/* Administrador Switch */}
-                <View style={styles.switchRow}>
-                  <View style={styles.switchLabelContainer}>
-                    <FontAwesome5
-                      name="user-shield"
-                      size={12}
-                      color={adminlteColors.muted}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text style={styles.switchLabel}>Administrador:</Text>
-                  </View>
-                  <Switch
-                    value={voluntario.administrador}
-                    onValueChange={() => toggleAdministrador(voluntario.id)}
-                    trackColor={{
-                      false: '#d3d3d3',
-                      true: adminlteColors.success,
-                    }}
-                    thumbColor={voluntario.administrador ? '#ffffff' : '#f4f3f4'}
-                  />
-                </View>
-
-                {/* Activo Switch */}
-                <View style={styles.switchRow}>
-                  <View style={styles.switchLabelContainer}>
-                    <FontAwesome5
-                      name="toggle-on"
-                      size={12}
-                      color={adminlteColors.muted}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text style={styles.switchLabel}>Activo:</Text>
-                  </View>
-                  <Switch
-                    value={voluntario.activo}
-                    onValueChange={() => toggleActivo(voluntario.id)}
-                    trackColor={{
-                      false: '#d3d3d3',
-                      true: adminlteColors.success,
-                    }}
-                    thumbColor={voluntario.activo ? '#ffffff' : '#f4f3f4'}
-                  />
-                </View>
-              </View>
-            </View>
-          ))}
+      {loading ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 20 }}>
+          <ActivityIndicator size="large" color={adminlteColors.primary} />
+          <Text style={{ marginTop: 8, color: adminlteColors.muted }}>
+            Cargando voluntarios...
+          </Text>
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView style={styles.voluntariosContainer}>
+          <View style={styles.voluntariosGrid}>
+            {voluntarios.map((voluntario, index) => (
+              <View
+                key={voluntario.id}
+                style={[
+                  styles.voluntarioCard,
+                  {
+                    borderTopWidth: 3,
+                    borderTopColor: obtenerColorBorde(index),
+                  },
+                ]}
+              >
+                <View style={styles.voluntarioCardHeader}>
+                  <View style={styles.voluntarioCardHeaderContent}>
+                    <FontAwesome5
+                      name="user-tag"
+                      size={14}
+                      color={adminlteColors.dark}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.voluntarioCardTitle}>
+                      {voluntario.nombre} {voluntario.apellido}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.showButton}
+                    onPress={() => handleMostrar(voluntario)}
+                  >
+                    <FontAwesome5
+                      name="eye"
+                      size={12}
+                      color="#ffffff"
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text style={styles.showButtonText}>Mostrar</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.voluntarioCardBody}>
+                  <View style={styles.voluntarioInfoRow}>
+                    <FontAwesome5
+                      name="id-card"
+                      size={12}
+                      color={adminlteColors.muted}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.voluntarioInfoLabel}>CI:</Text>
+                    <Text style={styles.voluntarioInfoValueMuted}>
+                      {voluntario.ci}
+                    </Text>
+                  </View>
+                 
+
+                  <View style={styles.voluntarioInfoRow}>
+                    <FontAwesome5
+                      name="briefcase"
+                      size={12}
+                      color={adminlteColors.muted}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.voluntarioInfoLabel}>Rol:</Text>
+                    <Text style={styles.voluntarioInfoValueMuted}>{voluntario.rol}</Text>
+                  </View>
+
+                  <View style={styles.switchRow}>
+                    <View style={styles.switchLabelContainer}>
+                      <Text style={styles.switchLabel}>Administrador:</Text>
+                    </View>
+                    <Switch
+                      value={voluntario.administrador}
+                      onValueChange={() => handleToggleAdmin(voluntario)}
+                      trackColor={{
+                        false: '#d3d3d3',
+                        true: adminlteColors.success,
+                      }}
+                      thumbColor={
+                        voluntario.administrador ? '#ffffff' : '#f4f3f4'
+                      }
+                    />
+                    
+                  </View>
+
+                  <View style={styles.switchRow}>
+                    <View style={styles.switchLabelContainer}>
+                     
+                    <Text style={styles.switchLabel}>Activo:</Text>
+                    </View>
+                    <Switch
+                      value={voluntario.activo}
+                      onValueChange={() => handleToggleActivo(voluntario)}
+                      trackColor={{
+                        false: '#d3d3d3',
+                        true: adminlteColors.success,
+                      }}
+                      thumbColor={
+                        voluntario.activo ? '#ffffff' : '#f4f3f4'
+                      }
+                    />
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      )}
+      <Modal
+        visible={showDetailModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDetailModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Detalle</Text>
+              s
+            </View>
+
+            <View style={styles.modalBody}>
+              {selectedVoluntario && (
+                <>
+                  <View style={styles.modalRow}>
+                    <Text style={styles.modalLabel}>Nombre completo</Text>
+                    <Text style={styles.modalValueMuted}>
+                      {selectedVoluntario.nombre} {selectedVoluntario.apellido}
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalRow}>
+                    <Text style={styles.modalLabel}>Correo</Text>
+                    <Text style={styles.modalValueMuted}>
+                      {selectedVoluntario.correo || '—'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalRow}>
+                    <Text style={styles.modalLabel}>Teléfono</Text>
+                    <Text style={styles.modalValueMuted}>
+                      {selectedVoluntario.telefono || '—'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalRow}>
+                    <Text style={styles.modalLabel}>CI</Text>
+                    <Text style={styles.modalValueMuted}>
+                      {selectedVoluntario.ci || '—'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalRow}>
+                    <Text style={styles.modalLabel}>Rol</Text>
+                    <Text style={styles.modalValueMuted}>
+                      {selectedVoluntario.rol || 'Sin rol'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalRow}>
+                    <Text style={styles.modalLabel}>Administrador</Text>
+                    <Text style={styles.modalValueMuted}>
+                      {selectedVoluntario.administrador ? 'Sí' : 'No'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalRow}>
+                    <Text style={styles.modalLabel}>Activo</Text>
+                    <Text style={styles.modalValueMuted}>
+                      {selectedVoluntario.activo ? 'Sí' : 'No'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalRow}>
+                    <Text style={styles.modalLabel}>Registro</Text>
+                    <Text style={styles.modalValueMuted}>
+                      {formatFecha(selectedVoluntario.created_at)}
+                    </Text>
+                  </View>
+                </>
+              )}
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowDetailModal(false)}
+              >
+                <Text style={styles.modalCloseText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </AdminLayout>
   );
 }
@@ -248,37 +341,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 12,
     color: adminlteColors.dark,
-  },
-  card: {
-    backgroundColor: adminlteColors.cardBg,
-    borderRadius: 8,
-    padding: 12,
-    elevation: 3,
-    marginBottom: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cardHeaderTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: adminlteColors.dark,
-    flex: 1,
-  },
-  btnCrear: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: adminlteColors.success,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 4,
-  },
-  btnCrearText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '500',
   },
   voluntariosContainer: {
     flex: 1,
@@ -309,11 +371,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: 8,
   },
   voluntarioCardTitle: {
     fontSize: 15,
     fontWeight: '600',
     color: adminlteColors.dark,
+  },
+  showButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: adminlteColors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  showButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   voluntarioCardBody: {
     padding: 12,
@@ -324,7 +400,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   voluntarioInfoLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: adminlteColors.dark,
   },
@@ -336,10 +412,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   voluntarioInfoValueMuted: {
-    fontSize: 13,
+    fontSize: 14,
     color: adminlteColors.muted,
-    marginBottom: 8,
-    marginLeft: 20,
+    marginLeft: 5,
   },
   switchRow: {
     flexDirection: 'row',
@@ -359,87 +434,67 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: adminlteColors.dark,
   },
-  // Modal styles
-  modalContainer: {
+    modalOverlay: {
     flex: 1,
-    backgroundColor: adminlteColors.bodyBg,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: adminlteColors.cardBg,
+    borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 5,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: adminlteColors.primary,
     paddingHorizontal: 16,
     paddingVertical: 12,
-  },
-  modalHeaderContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'space-between',
   },
-  modalHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+  modalTitle: {
     color: '#ffffff',
-  },
-  modalCloseButton: {
-    padding: 4,
+    fontSize: 16,
+    fontWeight: '700',
   },
   modalBody: {
-    flex: 1,
-    padding: 16,
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 8,
-    color: adminlteColors.dark,
-  },
-  required: {
-    color: adminlteColors.danger,
-  },
-  input: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#ced4da',
-    borderRadius: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: adminlteColors.primary,
-    gap: 8,
   },
-  modalFooterButtonSecondary: {
+  modalRow: {
+    marginBottom: 8,
+  },
+  modalLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: adminlteColors.dark,
+    marginBottom: 2,
+  },
+  modalValueMuted: {
+    fontSize: 13,
+    color: adminlteColors.muted,
+  },
+  modalFooter: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#f8f9fa',
+    alignItems: 'flex-end',
+  },
+  modalCloseButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 4,
     backgroundColor: adminlteColors.secondary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
-  modalFooterButtonSuccess: {
-    backgroundColor: adminlteColors.success,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  modalFooterButtonDisabled: {
-    opacity: 0.5,
-  },
-  modalFooterButtonText: {
+  modalCloseText: {
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
   },
+
 });

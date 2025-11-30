@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import { api } from './apiClient';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -12,8 +13,8 @@ const axiosInstance = axios.create({
 
 export const getSolicitudes = async () => {
   try {
-    const response = await axiosInstance.get('/solicitud');
-    console.log('Solicitudes API full response:', response.data);
+    const response = await api.get('/solicitud');
+    console.log('Solicitudes API respuesta:', response.data);
     const solicitudes = response.data?.data?.data || [];
     return solicitudes;
   } catch (error) {
@@ -24,7 +25,7 @@ export const getSolicitudes = async () => {
 
 export const approveSolicitud = async (id) => {
   try {
-    const response = await axiosInstance.post(`/solicitud/${id}/aprobar`);
+    const response = await api.post(`/solicitud/${id}/aprobar`);
     console.log('Solicitud aprobada:', response.data);
     return response.data;
   } catch (error) {
@@ -35,7 +36,7 @@ export const approveSolicitud = async (id) => {
 
 export const denySolicitud = async (id) => {
   try {
-    const response = await axiosInstance.post(`/solicitud/${id}/negar`);
+    const response = await api.post(`/solicitud/${id}/negar`);
     console.log('Solicitud negada:', response.data);
     return response.data;
   } catch (error) {

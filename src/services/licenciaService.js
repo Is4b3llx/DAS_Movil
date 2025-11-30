@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import { api } from './apiClient';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -11,10 +12,9 @@ const axiosInstance = axios.create({
 
 export const getLicencias = async () => {
   try {
-    const response = await axiosInstance.get('/tipo-licencia');
+    const response = await api.get('/tipo-licencia');
     console.log('Respuesta completa de la API:', response.data);
     
-    // Laravel devuelve: { success: true, data: { data: [...], pagination_info } }
     const licencias = response.data.data.data || [];
     console.log('Licencias extraídas:', licencias);
     
@@ -28,7 +28,7 @@ export const getLicencias = async () => {
 export const createLicencia = async (licenciaData) => {
   try {
     console.log('Datos enviados:', licenciaData);
-    const response = await axiosInstance.post('/tipo-licencia', licenciaData);
+    const response = await api.post('/tipo-licencia', licenciaData);
     console.log('Licencia creada:', response.data);
     return response.data;
   } catch (error) {
@@ -40,7 +40,7 @@ export const createLicencia = async (licenciaData) => {
 
 export const updateLicencia = async (id, licenciaData) => {
   try {
-    const response = await axiosInstance.put(`/tipo-licencia/${id}`, licenciaData);
+    const response = await api.put(`/tipo-licencia/${id}`, licenciaData);
     console.log('Licencia actualizada:', response.data);
     return response.data;
   } catch (error) {
@@ -51,7 +51,7 @@ export const updateLicencia = async (id, licenciaData) => {
 
 export const deleteLicencia = async (id) => {
   try {
-    const response = await axiosInstance.delete(`/tipo-licencia/${id}`);
+    const response = await api.delete(`/tipo-licencia/${id}`);
     console.log('Licencia eliminada:', response.data);
     return response.data;
   } catch (error) {

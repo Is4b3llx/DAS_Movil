@@ -2,6 +2,7 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from './apiClient';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -32,6 +33,10 @@ export const login = async (correo_electronico, password) => {
     if (user) {
       await AsyncStorage.setItem('authUser', JSON.stringify(user));
     }
+      if (token) {
+      api.defaults.headers.common.Authorization = `Bearer ${token}`;
+    }
+
 
     return { token, user };
   } catch (error) {
@@ -57,5 +62,8 @@ export const getStoredSession = async () => {
   const token = await AsyncStorage.getItem('authToken');
   const userStr = await AsyncStorage.getItem('authUser');
   const user = userStr ? JSON.parse(userStr) : null;
+   if (token) {
+    api.defaults.headers.common.Authorization = `Bearer ${token}`;
+  }
   return { token, user };
 };

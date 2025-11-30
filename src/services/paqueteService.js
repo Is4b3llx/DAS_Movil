@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import { api } from './apiClient';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -12,8 +13,8 @@ const axiosInstance = axios.create({
 
 export const getPaquetes = async () => {
   try {
-    const response = await axiosInstance.get('/paquete');
-    console.log('Paquetes API full response:', response.data);
+    const response = await api.get('/paquete');
+    console.log('Paquetes API respuesta:', response.data);
     const paquetes = response.data?.data?.data || [];
     return paquetes;
   } catch (error) {
@@ -59,7 +60,7 @@ export const updatePaquete = async (id, data) => {
    formData.append('_method', 'PUT');
 
   try {
-    const res = await axiosInstance.post(`/paquete/${id}`, formData, {
+    const res = await api.post(`/paquete/${id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
         Accept: 'application/json',

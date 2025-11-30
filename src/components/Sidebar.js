@@ -59,6 +59,12 @@ const adminMenu = [
     icon: 'user-shield',
     route: 'Roles',
   },
+    {
+    id: 'voluntario',
+    label: 'Voluntarios',
+    icon: 'user-alt',
+    route: 'Voluntario',
+  },
 ];
 
 const voluntarioMenu = [
@@ -98,6 +104,13 @@ const voluntarioMenu = [
     icon: 'truck-monster',
     route: 'TipoVehiculo',
   },
+  {
+    id: 'voluntario',
+    label: 'Voluntarios',
+    icon: 'user',
+    route: 'Voluntario',
+  },
+
 ];
 
 export default function Sidebar({ isVisible, onClose, navigation }) {

@@ -1,11 +1,11 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import { api } from './apiClient';
 
 const MARCA_ENDPOINT = `${API_BASE_URL}/marca`;
 
-// Configurar axios con timeout
 const axiosInstance = axios.create({
-  timeout: 10000, // 10 segundos
+  timeout: 10000, 
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -14,10 +14,9 @@ const axiosInstance = axios.create({
 
 export const getMarcas = async () => {
   try {
-    const response = await axiosInstance.get(MARCA_ENDPOINT);
+    const response = await api.get(MARCA_ENDPOINT);
     console.log('Respuesta completa de la API:', response.data);
     
-    // Laravel devuelve: { success: true, data: { data: [...], pagination_info } }
     const marcas = response.data.data.data || [];
     console.log('Marcas extraídas:', marcas);
     
@@ -30,7 +29,7 @@ export const getMarcas = async () => {
 
 export const createMarca = async (marcaData) => {
   try {
-    const response = await axiosInstance.post(MARCA_ENDPOINT, marcaData);
+    const response = await api.post(MARCA_ENDPOINT, marcaData);
     console.log('Marca creada:', response.data);
     return response.data;
   } catch (error) {
@@ -41,7 +40,7 @@ export const createMarca = async (marcaData) => {
 
 export const updateMarca = async (id, marcaData) => {
   try {
-    const response = await axiosInstance.put(`${MARCA_ENDPOINT}/${id}`, marcaData);
+    const response = await api.put(`${MARCA_ENDPOINT}/${id}`, marcaData);
     console.log('Marca actualizada:', response.data);
     return response.data;
   } catch (error) {
@@ -52,7 +51,7 @@ export const updateMarca = async (id, marcaData) => {
 
 export const deleteMarca = async (id) => {
   try {
-    const response = await axiosInstance.delete(`${MARCA_ENDPOINT}/${id}`);
+    const response = await api.delete(`${MARCA_ENDPOINT}/${id}`);
     console.log('Marca eliminada:', response.data);
     return response.data;
   } catch (error) {

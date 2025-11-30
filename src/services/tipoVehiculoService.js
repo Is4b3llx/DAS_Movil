@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import { api } from './apiClient';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -11,10 +12,9 @@ const axiosInstance = axios.create({
 
 export const getTiposVehiculo = async () => {
   try {
-    const response = await axiosInstance.get('/tipo-vehiculo');
+    const response = await api.get('/tipo-vehiculo');
     console.log('Respuesta completa de la API:', response.data);
     
-    // Laravel devuelve: { success: true, data: { data: [...], pagination_info } }
     const tiposVehiculo = response.data.data.data || [];
     console.log('Tipos de vehículo extraídos:', tiposVehiculo);
     
@@ -28,7 +28,7 @@ export const getTiposVehiculo = async () => {
 export const createTipoVehiculo = async (tipoVehiculoData) => {
   try {
     console.log('Datos enviados:', tipoVehiculoData);
-    const response = await axiosInstance.post('/tipo-vehiculo', tipoVehiculoData);
+    const response = await api.post('/tipo-vehiculo', tipoVehiculoData);
     console.log('Tipo de vehículo creado:', response.data);
     return response.data;
   } catch (error) {
@@ -40,7 +40,7 @@ export const createTipoVehiculo = async (tipoVehiculoData) => {
 
 export const updateTipoVehiculo = async (id, tipoVehiculoData) => {
   try {
-    const response = await axiosInstance.put(`/tipo-vehiculo/${id}`, tipoVehiculoData);
+    const response = await api.put(`/tipo-vehiculo/${id}`, tipoVehiculoData);
     console.log('Tipo de vehículo actualizado:', response.data);
     return response.data;
   } catch (error) {
@@ -51,7 +51,7 @@ export const updateTipoVehiculo = async (id, tipoVehiculoData) => {
 
 export const deleteTipoVehiculo = async (id) => {
   try {
-    const response = await axiosInstance.delete(`/tipo-vehiculo/${id}`);
+    const response = await api.delete(`/tipo-vehiculo/${id}`);
     console.log('Tipo de vehículo eliminado:', response.data);
     return response.data;
   } catch (error) {
