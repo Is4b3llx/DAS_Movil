@@ -78,7 +78,7 @@ export default function LicenciasScreen() {
 
   return (
     <AdminLayout>
-      <Text style={styles.pageTitle}>Gestión de Licencias</Text>
+      <Text style={styles.pageTitle}>Licencias</Text>
 
       {/* Botón Crear Licencia */}
       <View style={styles.card}>

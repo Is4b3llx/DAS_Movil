@@ -31,7 +31,19 @@ export default function VehiculosScreen() {
     modelo_anio: '',
     modelo: '',
     id_marca: '',
+    color: '',
+    color_otro: '',
   });
+  const colores = [
+    { label: 'Rojo', value: 'Rojo' },
+    { label: 'Blanco', value: 'Blanco' },
+    { label: 'Plomo', value: 'Plomo' },
+    { label: 'Negro', value: 'Negro' },
+    { label: 'Azul', value: 'Azul' },
+    { label: 'Dorado', value: 'Dorado' },
+    { label: 'Guindo/Rojo Oscuro', value: 'Guindo/Rojo Oscuro' },
+    { label: 'Otro', value: 'Otro' },
+  ];
 
   useEffect(() => {
     cargarVehiculos();
@@ -75,19 +87,22 @@ export default function VehiculosScreen() {
   };
 
   const handleCrearVehiculo = async () => {
+    const colorIsEmpty = !formData.color || (formData.color === 'Otro' && !formData.color_otro.trim());
     if (
       !formData.placa.trim() ||
       !formData.capacidad_aproximada ||
       !formData.id_tipovehiculo ||
       !formData.modelo_anio ||
       !formData.modelo.trim() ||
-      !formData.id_marca
+      !formData.id_marca ||
+      colorIsEmpty
     ) {
       Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
 
     setLoading(true);
+    const colorToSend = formData.color === 'Otro' ? formData.color_otro.trim() : formData.color;
     try {
       await vehiculoService.createVehiculo({
         placa: formData.placa.trim().toUpperCase(),
@@ -96,6 +111,7 @@ export default function VehiculosScreen() {
         modelo_anio: formData.modelo_anio.toString(),
         modelo: formData.modelo.trim(),
         id_marca: formData.id_marca,
+        color: colorToSend,
       });
       Alert.alert('Éxito', 'Vehículo creado exitosamente');
       setFormData({
@@ -105,6 +121,8 @@ export default function VehiculosScreen() {
         modelo_anio: '',
         modelo: '',
         id_marca: '',
+        color: '',
+        color_otro: '',
       });
       setModalCrearVisible(false);
       await cargarVehiculos();
@@ -129,7 +147,7 @@ export default function VehiculosScreen() {
 
   return (
     <AdminLayout>
-      <Text style={styles.pageTitle}>Gestión de Vehículos</Text>
+      <Text style={styles.pageTitle}>Vehículos Registrados</Text>
 
       {/* Botón Crear Vehículo */}
       <View style={styles.card}>
@@ -272,6 +290,20 @@ export default function VehiculosScreen() {
                 <Text style={styles.vehiculoInfoValueMuted}>
                   {vehiculo.marca?.nombre_marca || 'N/A'}
                 </Text>
+
+                <View style={styles.vehiculoInfoRow}>
+                  <FontAwesome5
+                    name="tag"
+                    size={12}
+                    color={adminlteColors.muted}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={styles.vehiculoInfoLabel}>Color:</Text>
+                </View>
+                <Text style={styles.vehiculoInfoValueMuted}>
+                  {vehiculo.color || 'Otro'}
+                </Text>
+
               </View>
             </View>
           ))}
@@ -403,6 +435,60 @@ export default function VehiculosScreen() {
                 })}
               </View>
             </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>
+                Color <Text style={styles.required}>*</Text>
+              </Text>
+
+              <View style={styles.inlineSelectorContainer}>
+                {colores.map((option) => {
+                  const isSelected = formData.color === option.value;
+
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.inlineOption,
+                        isSelected && styles.inlineOptionSelected,
+                      ]}
+                      onPress={() => handleChange('color', option.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.inlineOptionText,
+                          isSelected && styles.inlineOptionTextSelected,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+
+                      {isSelected && (
+                        <FontAwesome5
+                          name="check"
+                          size={14}
+                          color="#ffffff"
+                          style={{ marginLeft: 6 }}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              {formData.color === 'Otro' && ( 
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.label}>Especificar color</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Escribe el color"
+                    value={formData.color_otro || ''}
+                    onChangeText={(text) => handleChange('color_otro', text)}
+                  />
+                </View>
+              )}
+            </View>
+
+
             </ScrollView>
 
             <View style={styles.modalFooterCard}>

@@ -78,7 +78,7 @@ export default function TipoVehiculoScreen() {
 
   return (
     <AdminLayout>
-      <Text style={styles.pageTitle}>Gestión de Tipos de Vehículo</Text>
+      <Text style={styles.pageTitle}>Tipos de Vehículo</Text>
 
       {/* Botón Crear Tipo de Vehículo */}
       <View style={styles.card}>

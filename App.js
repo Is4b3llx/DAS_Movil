@@ -90,7 +90,7 @@ export default function App() {
         <Stack.Screen
           name="Paquete"
           component={PaqueteScreen}
-          options={{ title: 'Gestión de Paquetes' }}
+          options={{ title: 'Paquetes' }}
         />
         <Stack.Screen
           name="ListadoSolicitud"
@@ -100,32 +100,32 @@ export default function App() {
         <Stack.Screen
           name="TipoEmergencia"
           component={AdminOnly(TipoEmergenciaScreen)}
-          options={{ title: 'Listado de Solicitudes' }}
+          options={{ title: 'Tipos de Emergencia' }}
         />
          <Stack.Screen
           name="Estado"
           component={AdminOnly(TipoEmergenciaScreen)}
-          options={{ title: 'Gestión de Estados' }}
+          options={{ title: 'Estados de Paquete' }}
         />
         <Stack.Screen
           name="Solicitantes"
           component={SolicitantesScreen}
-          options={{ title: 'Gestión de Solicitantes' }}
+          options={{ title: 'Solicitantes' }}
         />
         <Stack.Screen
           name="Destino"
           component={DestinoScreen}
-          options={{ title: 'Gestión de Destinos' }}
+          options={{ title: 'Destinos' }}
         />
         <Stack.Screen
           name="Ubicaciones"
           component={UbicacionesScreen}
-          options={{ title: 'Gestión de Ubicaciones' }}
+          options={{ title: 'Ubicaciones' }}
         />
         <Stack.Screen
           name="Voluntario"
           component={VoluntarioScreen}
-          options={{ title: 'Gestión de Voluntarios' }}
+          options={{ title: 'Voluntarios' }}
         />
         <Stack.Screen
           name="Reporte"
@@ -140,32 +140,32 @@ export default function App() {
         <Stack.Screen
           name="Licencias"
           component={AdminOnly(LicenciasScreen)}
-          options={{ title: 'Gestión de Licencias' }}
+          options={{ title: 'Licencias' }}
         />
         <Stack.Screen
           name="Conductores"
           component={ConductoresScreen}
-          options={{ title: 'Gestión de Conductores' }}
+          options={{ title: 'Conductores' }}
         />
         <Stack.Screen
           name="Marcas"
           component={MarcasScreen}
-          options={{ title: 'Gestión de Marcas' }}
+          options={{ title: 'Marcas' }}
         />
         <Stack.Screen
           name="Vehiculos"
           component={VehiculosScreen}
-          options={{ title: 'Gestión de Vehículos' }}
+          options={{ title: 'Vehículos' }}
         />
         <Stack.Screen
           name="TipoVehiculo"
           component={TipoVehiculoScreen}
-          options={{ title: 'Gestión de Tipos de Vehículo' }}
+          options={{ title: 'Tipos de Vehículo' }}
         />
         <Stack.Screen
           name="Roles"
           component={AdminOnly(RolesScreen)}
-          options={{ title: 'Gestión de Roles' }}
+          options={{ title: ' Roles Registrados' }}
         />
       </Stack.Navigator>
       </NavigationContainer>

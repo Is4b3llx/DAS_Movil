@@ -76,7 +76,7 @@ export default function RolesScreen() {
 
   return (
     <AdminLayout>
-      <Text style={styles.pageTitle}>Gestión de Roles</Text>
+      <Text style={styles.pageTitle}>Roles</Text>
 
       {/* Botón Crear Rol */}
       <View style={styles.card}>

@@ -75,17 +75,17 @@ export default function DashboardScreen() {
 
         <View style={styles.row}>
           <SmallBox color="info" title="Solicitudes Totales" value={data.total}  />
-          <SmallBox color="success" title="Aceptadas" value={data.aceptadas}  />
+          <SmallBox color="success" title="Solicitudes Aceptadas" value={data.aceptadas}  />
         </View>
 
         <View style={styles.row}>
-          <SmallBox color="danger" title="Rechazadas" value={data.rechazadas}  />
+          <SmallBox color="danger" title="Solicitudes Rechazadas" value={data.rechazadas}  />
           <SmallBox color="warning" title="Tasa de Aprobación" value={`${data.tasa}%`}  />
         </View>
 
         <View style={styles.row}>
           <SmallBox color="purple" title="Total Voluntarios" value={data.totalVoluntarios}  />
-          <SmallBox color="teal" title="Voluntarios Conductores" value={data.voluntariosConductores}  />
+          <SmallBox color="teal" title="Conductores Registrados" value={data.voluntariosConductores}  />
         </View>
 
         <View style={styles.row}>
@@ -103,48 +103,97 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        <View style={styles.cardContainer}>
-          <View style={[styles.card, styles.shadow]}>
-            <Text style={styles.cardTitle}>Paquetes Entregados</Text>
-            <ScrollView horizontal>
-              <View>
-                <View style={styles.tableHeaderRow}>
-                  <Text style={[styles.tableHeaderText, { flex: 1 }]}>ID Paquete</Text>
-                  <Text style={[styles.tableHeaderText, { flex: 2 }]}>Fecha Creación</Text>
-                  <Text style={[styles.tableHeaderText, { flex: 2 }]}>Fecha Entrega</Text>
-                  <Text style={[styles.tableHeaderText, { flex: 1, textAlign: 'right' }]}>Días de Entrega</Text>
-                </View>
-                {data.paquetes.length > 0 ? (
-                  data.paquetes.map((paq, index) => {
-                    const badgeStyle =
-                      paq.dias_entrega > 7
-                        ? styles.badgeDanger
-                        : paq.dias_entrega > 3
-                        ? styles.badgeWarning
-                        : styles.badgeSuccess;
+    <View>
+    <View >
+    <Text style={styles.cardTitle}>Paquetes Entregados</Text>
 
-                    return (
-                      <View key={index} style={styles.tableRow}>
-                        <Text style={[styles.tableCell, { flex: 1 }]}>#{paq.id_paquete}</Text>
-                        <Text style={[styles.tableCell, { flex: 2 }]}>{paq.fecha_creacion}</Text>
-                        <Text style={[styles.tableCell, { flex: 2 }]}>{paq.fecha_entrega}</Text>
-                        <Text style={[styles.tableCell, { flex: 1, textAlign: 'right' }]}>
-                          <Text style={[styles.badge, badgeStyle]}>{Math.round(paq.dias_entrega * 10) / 10} días</Text>
-                        </Text>
-                      </View>
-                    );
-                  })
-                ) : (
-                  <View style={styles.tableRow}>
-                    <Text style={styles.noDataText}>No hay paquetes con fechas de entrega.</Text>
-                  </View>
-                )}
-              </View>
-            </ScrollView>
-          </View>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal: 0, paddingBottom:5, margin:0}}
+    >
+      <View style={{ minWidth: 370}}> 
+        <View style={[styles.tableHeaderRow, { paddingVertical: 6 }]}>
+          <Text style={[styles.tableHeaderText, { flex: 0.1 }]}>Código</Text>
+          <Text style={[styles.tableHeaderText, { flex: 0.2 }]}>Creado</Text>
+          <Text style={[styles.tableHeaderText, { flex: 0.2 }]}>Entregado</Text>
+          <Text style={[styles.tableHeaderText, { flex: 0.2}]}>
+            Tiempo
+          </Text>
         </View>
 
-       
+        {data.paquetes.length > 0 ? (
+          data.paquetes.map((paq, index) => {
+            const badgeStyle =
+              paq.dias_entrega > 7
+                ? styles.badgeDanger
+                : paq.dias_entrega > 3
+                ? styles.badgeWarning
+                : styles.badgeSuccess;
+
+            const codigo =
+              paq?.solicitud?.codigo_seguimiento ??
+              `Nº${paq.id_paquete ?? index + 1}`;
+
+            const diasEntregaRedondeado = Math.round(paq.dias_entrega * 10) / 10;
+            const formatDate = (dateStr) => {
+              if (!dateStr) return '-';
+              const d = new Date(dateStr);
+              if (isNaN(d.getTime())) return dateStr;
+
+              const day = String(d.getDate()).padStart(2, '0');
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const year = d.getFullYear();
+
+              return `${day}/${month}/${year}`;
+            };
+
+
+            return (
+              <View
+                key={paq.id_paquete ?? index}
+                style={[styles.tableRow, { paddingVertical: 6 }]}
+              >
+                <Text
+                  style={[styles.tableCell, { flex: 0.3 }]}
+                  numberOfLines={1} 
+                >
+                  {codigo}
+                </Text>
+
+                <Text style={[styles.tableCell, { flex: 0.2 }]}>
+                  {formatDate(paq.fecha_creacion)}
+                </Text>
+
+                <Text style={[styles.tableCell, { flex: 0.2 }]}>
+                  {formatDate(paq.fecha_entrega)}
+                </Text>
+
+                <Text
+                  style={[
+                    styles.tableCell,
+                    { flex: 0.2},
+                  ]}
+                >
+                  <Text style={[styles.badge, badgeStyle]}>
+                    {diasEntregaRedondeado} días
+                  </Text>
+                </Text>
+              </View>
+            );
+          })
+        ) : (
+          <View style={[styles.tableRow, { paddingVertical: 8 }]}>
+            <Text style={styles.noDataText}>
+              No hay paquetes con fechas de entrega.
+            </Text>
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  </View>
+</View>
+
       </ScrollView>
     </AdminLayout>
   );

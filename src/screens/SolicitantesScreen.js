@@ -103,7 +103,7 @@ export default function SolicitantesScreen() {
 
   return (
     <AdminLayout>
-      <Text style={styles.pageTitle}>Gestión de Solicitantes</Text>
+      <Text style={styles.pageTitle}>Solicitantes</Text>
 
       {/* Botón Crear Solicitante */}
       <View style={styles.card}>

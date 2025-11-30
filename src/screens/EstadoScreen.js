@@ -58,7 +58,7 @@ export default function EstadoScreen() {
 
   return (
     <AdminLayout>
-      <Text style={styles.pageTitle}>Gestión de Estados</Text>
+      <Text style={styles.pageTitle}>Estados</Text>
 
       {/* Botón Crear Estado */}
       <View style={styles.card}>

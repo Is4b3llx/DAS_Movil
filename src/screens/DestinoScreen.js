@@ -98,7 +98,7 @@ export default function DestinoScreen() {
 
   return (
     <AdminLayout>
-      <Text style={styles.pageTitle}>Gestión de Destinos</Text>
+      <Text style={styles.pageTitle}>Destinos</Text>
 
       {/* Botón Crear Destino */}
       <View style={styles.card}>

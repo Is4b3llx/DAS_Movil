@@ -141,7 +141,7 @@ export default function ConductoresScreen() {
 
   return (
     <AdminLayout>
-      <Text style={styles.pageTitle}>Gestión de Conductores</Text>
+      <Text style={styles.pageTitle}>Conductores Registrados</Text>
 
       {/* Botón Crear Conductor */}
       <View style={styles.card}>

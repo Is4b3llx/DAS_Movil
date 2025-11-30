@@ -86,7 +86,7 @@ export default function UbicacionesScreen() {
 
   return (
     <AdminLayout>
-      <Text style={styles.pageTitle}>Gestión de Ubicaciones</Text>
+      <Text style={styles.pageTitle}>Ubicaciones</Text>
 
       {/* Botón Crear Ubicación */}
       <View style={styles.card}>

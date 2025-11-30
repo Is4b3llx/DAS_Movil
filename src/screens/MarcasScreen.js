@@ -79,7 +79,7 @@ export default function MarcasScreen() {
 
   return (
     <AdminLayout>
-      <Text style={styles.pageTitle}>Gestión de Marcas</Text>
+      <Text style={styles.pageTitle}>Marcas</Text>
 
       {/* Botón Crear Marca */}
       <View style={styles.card}>
