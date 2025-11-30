@@ -1,74 +1,175 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Button } from 'react-native';
 import AdminLayout from '../components/AdminLayout';
 import SmallBox from '../components/SmallBox';
-import { adminlteColors } from '../theme/adminlte';
+import { getApiConfig, API_BASE_URL } from '../config/api';
+import axios from 'axios';
 
 export default function DashboardScreen() {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const config = await getApiConfig(); // Obtener configuración con token
+      const response = await axios.get(`${API_BASE_URL}/dashboard`, config);
+
+      console.log('Respuesta completa de la API:', JSON.stringify(response.data, null, 2)); // Log detallado para depurar la respuesta completa
+
+      // Ajustar el mapeo de datos según la estructura de la API
+      const mappedData = {
+        total: response.data.total || response.data.listadoSolicitud || 0, // Verificar claves alternativas
+        aceptadas: response.data.aceptadas || 0,
+        rechazadas: response.data.rechazadas || 0,
+        tasa: response.data.tasa || 0,
+        totalVoluntarios: response.data.totalVoluntarios || 0,
+        voluntariosConductores: response.data.voluntariosConductores || 0,
+      };
+
+      console.log('Datos mapeados para el dashboard:', mappedData); // Log para verificar los datos mapeados
+
+      setData(mappedData);
+    } catch (error) {
+      console.error('Error al obtener datos del dashboard:', error);
+      Alert.alert('Error', 'No se pudo cargar el dashboard.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  if (!data) {
+    console.log('Estado de los datos en el renderizado:', data); // Log para verificar el estado de los datos
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>No se pudo cargar el dashboard.</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchDashboardData}>
+          <Text style={styles.retryButtonText}>Reintentar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <AdminLayout>
-      <Text style={styles.pageTitle}>Dashboard</Text>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.headerContainer}>
+          <Text style={styles.pageTitle}>Dashboard</Text>
+          <Button title="Recargar" onPress={fetchDashboardData} color="#007bff" />
+        </View>
 
-      <View style={styles.row}>
-        <SmallBox
-          color="info"
-          title="Donaciones hoy"
-          value="12"
-          footer="Ver detalle"
-        />
-        <SmallBox
-          color="success"
-          title="Entregas"
-          value="8"
-          footer="Ver detalle"
-        />
-      </View>
+        <View style={styles.row}>
+          <SmallBox color="info" title="Solicitudes Totales" value={data.total} footer="Más info" />
+          <SmallBox color="success" title="Aceptadas" value={data.aceptadas} footer="Ver aceptadas" />
+        </View>
 
-      <View style={styles.row}>
-        <SmallBox
-          color="warning"
-          title="Pendientes"
-          value="5"
-          footer="Ver pendientes"
-        />
-        <SmallBox
-          color="danger"
-          title="Alertas"
-          value="2"
-          footer="Ver alertas"
-        />
-      </View>
+        <View style={styles.row}>
+          <SmallBox color="danger" title="Rechazadas" value={data.rechazadas} footer="Ver rechazadas" />
+          <SmallBox color="warning" title="Tasa de Aprobación" value={`${data.tasa}%`} footer="Info" />
+        </View>
+
+        <View style={styles.row}>
+          <SmallBox color="purple" title="Total Voluntarios" value={data.totalVoluntarios} footer="Ver voluntarios" />
+          <SmallBox color="teal" title="Voluntarios Conductores" value={data.voluntariosConductores} footer="Ver conductores" />
+        </View>
+
+        <View style={styles.cardContainer}>
+          <View style={[styles.card, styles.shadow]}>
+            <Text style={styles.cardTitle}>Resumen General</Text>
+            <Text style={styles.cardText}>Total de solicitudes: {data.total}</Text>
+            <Text style={styles.cardText}>Aceptadas: {data.aceptadas}</Text>
+            <Text style={styles.cardText}>Rechazadas: {data.rechazadas}</Text>
+            <Text style={styles.cardText}>Tasa de aprobación: {data.tasa}%</Text>
+          </View>
+        </View>
+
+        {/* Aquí puedes agregar más secciones como gráficos o tablas */}
+      </ScrollView>
     </AdminLayout>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    padding: 16,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   pageTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 12,
-    color: adminlteColors.dark,
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#333',
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  cardContainer: {
+    marginTop: 20,
   },
   card: {
-    backgroundColor: adminlteColors.cardBg,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
-    elevation: 2,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 16,
+  },
+  shadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 6,
-    color: adminlteColors.dark,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#007bff',
   },
   cardText: {
-    fontSize: 14,
-    color: adminlteColors.muted,
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 5,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#dc3545',
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: '#007bff',
+    padding: 10,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
