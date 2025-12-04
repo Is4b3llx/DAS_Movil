@@ -52,6 +52,21 @@ export default function PaqueteScreen() {
   const [showVehiculoPicker, setShowVehiculoPicker] = useState(false);
   const [showEstadoPicker, setShowEstadoPicker] = useState(false);
 
+  const [filtroEstadoActivo, setFiltroEstadoActivo] = useState('todos');
+  const [filtroOrdenActivo, setFiltroOrdenActivo] = useState('recientes');
+
+  const filtrosEstado = [
+    { id: 'todos', label: 'Todos', icon: 'list' },
+    { id: 'pendiente', label: 'Pendiente', icon: 'clock' },
+    { id: 'en_camino', label: 'En camino', icon: 'truck' },
+    { id: 'entregado', label: 'Entregado', icon: 'check' },
+  ];
+
+  const filtrosOrden = [
+    { id: 'recientes', label: 'Recientes', icon: 'sort-amount-down' },
+    { id: 'antiguos', label: 'Antiguos', icon: 'sort-amount-up' },
+  ];
+
   const resetForm = () => {
     setEstadoEntrega('');
     setZona('');
@@ -186,10 +201,50 @@ export default function PaqueteScreen() {
     return found.nombre_estado.toLowerCase().includes('entregado');
   };
 
+  const getEstadoKey = (p) => {
+      const nombre = (p.estadoNombre || '').toLowerCase();
+      if (nombre.includes('pendiente')) return 'pendiente';
+      if (nombre.includes('camino')) return 'en_camino';
+      if (nombre.includes('entregado')) return 'entregado';
+      return 'otro';
+    };
+
+    const getFechaReferencia = (p) => {
+      const raw = p.fechaEntrega || p.fechaAprobacion;
+      if (!raw) return null;
+      const d = new Date(raw);
+      return isNaN(d.getTime()) ? null : d;
+    };
+
+    const obtenerPaquetesFiltrados = () => {
+      let resultado = [...paquetes];
+
+      if (filtroEstadoActivo !== 'todos') {
+        resultado = resultado.filter((p) => getEstadoKey(p) === filtroEstadoActivo);
+      }
+
+      resultado.sort((a, b) => {
+        const fa = getFechaReferencia(a);
+        const fb = getFechaReferencia(b);
+
+        if (!fa && !fb) return 0;
+        if (!fa) return 1;
+        if (!fb) return -1;
+
+        if (filtroOrdenActivo === 'antiguos') {
+          return fa - fb;
+        }
+        return fb - fa;
+      });
+
+      return resultado;
+    };
+
+  const paquetesFiltrados = obtenerPaquetesFiltrados();
+
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        // 1) Cargar solicitudes (online/offline) y armar índice
         const solicitudes = await getSolicitudes();
         const solicitudesIndex = {};
 
@@ -199,15 +254,52 @@ export default function PaqueteScreen() {
           }
         });
 
-        // 🔹 Guardamos el índice en estado para reusar luego
         setSolicitudesMap(solicitudesIndex);
 
-        // 2) Cargar paquetes (online/offline) y normalizar con ese índice
         const lista = await getPaquetes();
         const normalizados = normalizarPaquetes(lista, solicitudesIndex);
         setPaquetes(normalizados);
 
-        // 3) Resto de catálogos
+        const respCond = await conductorService.getConductores();
+        if (respCond.success) {
+          setConductores(respCond.data || []);
+        } else {
+          console.log('No se pudieron cargar conductores');
+        }
+
+        const vehs = await getVehiculos();
+        setVehiculosState(vehs || []);
+
+        const estadosApi = await getEstados();
+        setEstados(estadosApi || []);
+      } catch (err) {
+        console.error('Error cargando datos:', err);
+      }
+    };
+
+    fetchAll();
+  }, []);
+
+
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const solicitudes = await getSolicitudes();
+        const solicitudesIndex = {};
+
+        (solicitudes || []).forEach((s) => {
+          if (s.id_solicitud != null) {
+            solicitudesIndex[String(s.id_solicitud)] = s;
+          }
+        });
+
+        setSolicitudesMap(solicitudesIndex);
+
+        const lista = await getPaquetes();
+        const normalizados = normalizarPaquetes(lista, solicitudesIndex);
+        setPaquetes(normalizados);
+
         const respCond = await conductorService.getConductores();
         if (respCond.success) {
           setConductores(respCond.data || []);
@@ -305,7 +397,6 @@ export default function PaqueteScreen() {
         Alert.alert('Éxito', 'Paquete actualizado correctamente');
       }
 
-      // 🔹 IMPORTANTE: volver a normalizar usando solicitudesMap
       const lista = await getPaquetes();
       setPaquetes(normalizarPaquetes(lista, solicitudesMap));
 
@@ -365,11 +456,94 @@ export default function PaqueteScreen() {
   return (
     <AdminLayout>
       <Text style={styles.pageTitle}>Paquetes</Text>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.cardHeaderContent}>
+            <FontAwesome5
+              name="filter"
+              size={12}
+              color={adminlteColors.secondary}
+              style={{ marginRight: 2, marginTop:-2 }}
+            />
+            <Text style={styles.filterGroupLabel}>Filtros</Text>
+          </View>
+        </View>
+        <View style={styles.cardBody}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filtrosContainer}
+          >
+            {filtrosEstado.map((f) => (
+              <TouchableOpacity
+                key={f.id}
+                style={[
+                  styles.filtroButton,
+                  filtroEstadoActivo === f.id && styles.filtroButtonActive,
+                ]}
+                onPress={() => setFiltroEstadoActivo(f.id)}
+              >
+                <FontAwesome5
+                  name={f.icon}
+                  size={14}
+                  color={
+                    filtroEstadoActivo === f.id ? '#ffffff' : adminlteColors.primary
+                  }
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.filtroButtonText,
+                    filtroEstadoActivo === f.id && styles.filtroButtonTextActive,
+                  ]}
+                >
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filtrosContainer}
+            style={{ marginTop: 12 }}
+          >
+            <Text style={[styles.filterGroupLabel, { marginTop: 10, marginEnd:5 }]}>Orden:</Text>
+            {filtrosOrden.map((f) => (
+              <TouchableOpacity
+                key={f.id}
+                style={[
+                  styles.filtroButton,
+                  filtroOrdenActivo === f.id && styles.filtroButtonActive,
+                ]}
+                onPress={() => setFiltroOrdenActivo(f.id)}
+              >
+                <FontAwesome5
+                  name={f.icon}
+                  size={14}
+                  color={
+                    filtroOrdenActivo === f.id ? '#ffffff' : adminlteColors.primary
+                  }
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.filtroButtonText,
+                    filtroOrdenActivo === f.id && styles.filtroButtonTextActive,
+                  ]}
+                >
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
       {/* Lista de Paquetes */}
       <ScrollView style={styles.listaContainer}>
         <View style={styles.grid}>
-          {paquetes.map((p, idx) => (
+          {paquetesFiltrados.map((p, idx) => (
             <View
               key={p.id}
               style={[
@@ -393,7 +567,6 @@ export default function PaqueteScreen() {
               
               
               <View style={styles.itemBody}>
-                {/* Estado */}
                 <View style={styles.row}>
                   <FontAwesome5
                     name="shipping-fast"
@@ -1100,5 +1273,59 @@ previewImagen: {
   marginBottom: 8,
 },
 
-
+card: {
+    backgroundColor: adminlteColors.cardBg,
+    borderRadius: 8,
+    padding: 12,
+    elevation: 3,
+    marginBottom: 16,
+  },
+  cardHeader: {
+    marginBottom: 8,
+  },
+  cardHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: adminlteColors.dark,
+  },
+  cardBody: {
+    paddingTop: 4,
+  },
+  filtrosContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filtroButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: adminlteColors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  filtroButtonActive: {
+    backgroundColor: adminlteColors.primary,
+    borderColor: adminlteColors.primary,
+  },
+  filtroButtonText: {
+    fontSize: 13,
+    color: adminlteColors.primary,
+    fontWeight: '500',
+  },
+  filtroButtonTextActive: {
+    color: '#ffffff',
+  },
+  filterGroupLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: adminlteColors.muted,
+    marginBottom: 4,
+  },
 });

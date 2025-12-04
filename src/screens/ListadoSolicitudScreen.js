@@ -192,7 +192,7 @@ const obtenerSolicitudesFiltradas = () => {
     try {
       await approveSolicitud(id);
       setSolicitudes(prev => prev.map(s => (s.id === id ? { ...s, estado: 'aprobadas' } : s)));
-      Alert.alert('Éxito', `Solicitud #${String(id).padStart(3, '0')} aprobada exitosamente`);
+      Alert.alert('Éxito', `Solicitud N°${String(id).padStart(3, '0')} aprobada exitosamente`);
     } catch (e) {
       Alert.alert('Error', 'No se pudo aprobar la solicitud');
     } finally {

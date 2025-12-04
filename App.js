@@ -30,7 +30,7 @@ import { AdminOnly } from './src/navigation/ProtectedScreens';
 
 import { listenConnection } from "./src/offline/connectivity";
 import { syncPending } from "./src/offline/syncManager";
-
+import { Alert } from 'react-native';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -39,7 +39,18 @@ export default function App() {
   useEffect(() => {
     const unsub = listenConnection((online) => {
       if (online) {
-        syncPending();
+        syncPending()
+          .then((count) => {
+            if (count > 0) {
+              Alert.alert(
+                'Actualizaciones sincronizadas',
+                'Tus actualizaciones fueron enviadas exitosamente'
+              );
+            }
+          })
+          .catch((e) => {
+            console.log('Error al sincronizar actualizaciones pendientes:', e);
+          });
       }
     });
 
@@ -47,6 +58,7 @@ export default function App() {
       if (unsub) unsub();
     };
   }, []);
+
   React.useEffect(() => {
     const checkSession = async () => {
       try {
