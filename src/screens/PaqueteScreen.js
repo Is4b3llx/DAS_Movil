@@ -14,7 +14,7 @@ import {
 import { adminlteColors } from '../theme/adminlte';
 import AdminLayout from '../components/AdminLayout';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import { getPaquetes, updatePaquete } from '../services/paqueteService';
+import { getPaquetes, updatePaquete, sendEntregaCode, verifyEntregaCode, } from '../services/paqueteService';
 import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
 import * as ImagePicker from 'expo-image-picker';
@@ -30,6 +30,13 @@ export default function PaqueteScreen() {
   const [modoEdicion, setModoEdicion] = useState(false);
   const [paqueteActual, setPaqueteActual] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+
+  const [showCodigoModal, setShowCodigoModal] = useState(false);
+  const [codigoEntrega, setCodigoEntrega] = useState('');
+  const [codigoError, setCodigoError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [payloadPendiente, setPayloadPendiente] = useState(null);
 
   const [estadoEntrega, setEstadoEntrega] = useState('');
   const [zona, setZona] = useState('');
@@ -55,6 +62,9 @@ export default function PaqueteScreen() {
   const [filtroEstadoActivo, setFiltroEstadoActivo] = useState('todos');
   const [filtroOrdenActivo, setFiltroOrdenActivo] = useState('recientes');
 
+  const [isLoadingUbicacion, setIsLoadingUbicacion] = useState(false);
+  const [ubicacionError, setUbicacionError] = useState('');
+
   const filtrosEstado = [
     { id: 'todos', label: 'Todos', icon: 'list' },
     { id: 'pendiente', label: 'Pendiente', icon: 'clock' },
@@ -79,6 +89,13 @@ export default function PaqueteScreen() {
     setImagenUri(null);
     setPaqueteActual(null);
     setModoEdicion(false);
+      //REFERENTES AL CODIGO DE VERIFICACION
+    setShowCodigoModal(false);
+    setCodigoEntrega('');
+    setCodigoError('');
+    setPayloadPendiente(null);
+    setIsSaving(false);
+    setIsVerifying(false);
   };
 
   const seleccionarImagen = async () => {
@@ -194,11 +211,11 @@ export default function PaqueteScreen() {
 
   const esEstadoEntregado = (id) => {
     if (!id) return false;
-    const found = estados.find(
-      (e) => String(e.id_estado) === String(id)
-    );
+    const found = estados.find(e => String(e.id_estado) === String(id));
     if (!found || !found.nombre_estado) return false;
-    return found.nombre_estado.toLowerCase().includes('entregado');
+
+    const nombre = found.nombre_estado.trim().toLowerCase();
+    return nombre === 'entregado' || nombre === 'entregada';
   };
 
   const getEstadoKey = (p) => {
@@ -322,9 +339,16 @@ export default function PaqueteScreen() {
 
   const obtenerUbicacionUsuario = async () => {
     try {
+      setIsLoadingUbicacion(true);
+      setUbicacionError('');
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permiso denegado', 'No se pudo obtener la ubicación del dispositivo.');
+        setUbicacionError('Permiso denegado para obtener la ubicación.');
+        Alert.alert(
+          'Permiso denegado',
+          'No se pudo obtener la ubicación del dispositivo.'
+        );
         return;
       }
 
@@ -332,14 +356,43 @@ export default function PaqueteScreen() {
         accuracy: Location.Accuracy.High,
       });
 
-      const lat = location.coords.latitude.toFixed(6);
-      const lng = location.coords.longitude.toFixed(6);
+      const lat = Number(location.coords.latitude.toFixed(6));
+      const lng = Number(location.coords.longitude.toFixed(6));
 
       setLatitud(lat);
       setLongitud(lng);
-      setUbicacionActual(`Lat: ${lat}, Lng: ${lng}`);
+
+      const resultados = await Location.reverseGeocodeAsync({
+        latitude: lat,
+        longitude: lng,
+      });
+
+      if (resultados && resultados.length > 0) {
+        const info = resultados[0];
+        const partes = [
+          info.street || info.name,
+          info.district,
+          info.city || info.subregion || info.region,
+          info.country,
+        ].filter(Boolean);
+
+        const descripcion = partes.join(', ');
+
+        setUbicacionActual(
+          descripcion || `Ubicación aproximada (${lat}, ${lng})`
+        );
+         setZona(
+          descripcion || `Ubicación aproximada (${lat}, ${lng})`
+        );
+      } else {
+        setUbicacionActual(`Ubicación capturada (${lat}, ${lng})`);
+      }
     } catch (e) {
       console.log('Error obteniendo ubicación', e);
+      setUbicacionError('No se pudo obtener la ubicación actual.');
+      setUbicacionActual('');
+    } finally {
+      setIsLoadingUbicacion(false);
     }
   };
 
@@ -362,31 +415,103 @@ export default function PaqueteScreen() {
       return;
     }
 
-    let nuevaFechaEntrega = null;
+    const payloadBase = {
+      id_solicitud: paqueteActual.id_solicitud,
+      codigo: paqueteActual.codigo,
+      estado_id: estadoIdNum,
+      zona: zona || null,
+      fecha_entrega: fechaEntrega || null,
+      latitud,
+      longitud,
+      id_conductor: conductorId ? parseInt(conductorId, 10) : null,
+      id_vehiculo: vehiculoId ? parseInt(vehiculoId, 10) : null,
+      imagenUri,
+    };
 
-    if (esEstadoEntregado(estadoIdNum)) {
-      nuevaFechaEntrega =
-        paqueteActual.fechaEntrega ||
-        fechaEntrega ||
-        new Date().toISOString().slice(0, 10);
+    const esEntregadoNuevo = esEstadoEntregado(estadoIdNum);
+
+    if (!esEntregadoNuevo) {
+      try {
+        setIsSaving(true);
+        const result = await updatePaquete(paqueteActual.id, payloadBase);
+
+        if (result?.offline) {
+          Alert.alert(
+            'Sin conexión',
+            'Los cambios se guardaron en el dispositivo y se enviarán automáticamente cuando tengas internet.'
+          );
+        } else {
+          Alert.alert('Éxito', 'Paquete actualizado correctamente');
+        }
+
+        const lista = await getPaquetes();
+        setPaquetes(normalizarPaquetes(lista, solicitudesMap));
+
+        setModalVisible(false);
+        resetForm();
+      } catch (error) {
+        console.error('Error en guardarCambiosPaquete:', error);
+        Alert.alert('Error', 'No se pudo actualizar el paquete');
+      } finally {
+        setIsSaving(false);
+      }
+      return;
     }
 
     try {
-      const payload = {
-        id_solicitud: paqueteActual.id_solicitud,
-        codigo: paqueteActual.codigo,
-        estado_id: estadoIdNum,
-        zona: zona || null,
-        // mantenemos tu lógica actual, puedes cambiar a nuevaFechaEntrega si quieres
-        fecha_entrega: fechaEntrega || null,
-        latitud,
-        longitud,
-        id_conductor: conductorId ? parseInt(conductorId, 10) : null,
-        id_vehiculo: vehiculoId ? parseInt(vehiculoId, 10) : null,
-        imagenUri,
-      };
+      setIsSaving(true);
+      setPayloadPendiente(payloadBase);
 
-      const result = await updatePaquete(paqueteActual.id, payload);
+      const res = await sendEntregaCode(paqueteActual.id, estadoIdNum);
+
+      if (res?.success) {
+        Alert.alert(
+          'Código enviado',
+          'Se envió un código al correo del solicitante. Pídele que te lo dicte para confirmar la entrega.'
+        );
+        setCodigoEntrega('');
+        setCodigoError('');
+        setShowCodigoModal(true);
+      } else {
+        const msg = res?.message || 'No se pudo enviar el código al solicitante.';
+        Alert.alert('Error', msg);
+      }
+    } catch (error) {
+      console.error('Error enviando código de entrega:', error);
+      Alert.alert('Error', 'No se pudo enviar el código de verificación.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const confirmarCodigoEntrega = async () => {
+    if (!paqueteActual || !payloadPendiente) {
+      return;
+    }
+
+    const code = (codigoEntrega || '').trim();
+    if (!/^\d{4}$/.test(code)) {
+      setCodigoError('El código debe tener 4 dígitos numéricos.');
+      return;
+    }
+
+    try {
+      setIsVerifying(true);
+      setCodigoError('');
+
+      const res = await verifyEntregaCode(paqueteActual.id, code);
+
+      if (!res?.success) {
+        const msg = res?.message || 'Código incorrecto o vencido. El paquete no fue entregado.';
+        setCodigoError(msg);
+        return;
+      }
+
+      const result = await updatePaquete(paqueteActual.id, payloadPendiente);
+
+      setShowCodigoModal(false);
+      setPayloadPendiente(null);
+      setCodigoEntrega('');
 
       if (result?.offline) {
         Alert.alert(
@@ -394,7 +519,7 @@ export default function PaqueteScreen() {
           'Los cambios se guardaron en el dispositivo y se enviarán automáticamente cuando tengas internet.'
         );
       } else {
-        Alert.alert('Éxito', 'Paquete actualizado correctamente');
+        Alert.alert('Éxito', 'Paquete marcado como entregado.');
       }
 
       const lista = await getPaquetes();
@@ -403,8 +528,10 @@ export default function PaqueteScreen() {
       setModalVisible(false);
       resetForm();
     } catch (error) {
-      console.error('Error en guardarCambiosPaquete:', error);
-      Alert.alert('Error', 'No se pudo actualizar el paquete');
+      console.error('Error confirmando código de entrega:', error);
+      setCodigoError('Error de red al validar el código. Intenta nuevamente.');
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -414,7 +541,7 @@ export default function PaqueteScreen() {
     const clean = isoString.replace(/\.\d+Z$/, 'Z');
 
     const date = new Date(clean);
-    if (isNaN(date.getTime())) {
+    if (isNaN(date.getDate())) {
       return isoString;
     }
 
@@ -638,31 +765,38 @@ export default function PaqueteScreen() {
                 <Text style={styles.valueMuted}>{formatFechaAprobacion(p.fechaEntrega) || '-'}</Text>
               </View>
 
-              <TouchableOpacity
-                style={styles.btnEditarPaquete}
-                onPress={() => {
-                  setModoEdicion(true);
-                  setPaqueteActual(p);
+              {!esEstadoEntregado(p.estado_id) && (
+                  <TouchableOpacity
+                    style={styles.btnEditarPaquete}
+                    onPress={() => {
+                      setModoEdicion(true);
+                      setPaqueteActual(p);
 
-                  setEstadoEntrega(p.estado_id ? String(p.estado_id) : '');
-                  setFechaEntrega(p.fechaEntrega || '');
-                  setZona(p.zona || '');
-                  setConductorId(p.id_conductor ? String(p.id_conductor) : '');
-                  setVehiculoId(p.id_vehiculo ? String(p.id_vehiculo) : '');
-                  setImagenUri(null);
+                      setEstadoEntrega(p.estado_id ? String(p.estado_id) : '');
+                      setFechaEntrega(p.fechaEntrega || '');
+                      setZona(p.zona || '');
+                      setConductorId(p.id_conductor ? String(p.id_conductor) : '');
+                      setVehiculoId(p.id_vehiculo ? String(p.id_vehiculo) : '');
+                      setImagenUri(null);
 
-                  obtenerUbicacionUsuario();
-                  setModalVisible(true);
-                }}
-              >
-                <FontAwesome5
-                  name="edit"
-                  size={12}
-                  color="#ffffff"
-                  style={{ marginRight: 6 }}
-                />
-                <Text style={styles.btnEditarPaqueteText}>Actualizar</Text>
-              </TouchableOpacity>
+                      setUbicacionActual(p.ubicacionActual || '');
+                      setLatitud(null);
+                      setLongitud(null);
+
+                      obtenerUbicacionUsuario();
+
+                      setModalVisible(true);
+                    }}
+                  >
+                    <FontAwesome5
+                      name="edit"
+                      size={12}
+                      color="#ffffff"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.btnEditarPaqueteText}>Actualizar</Text>
+                  </TouchableOpacity>
+                )}
             </View>
           ))}
         </View>
@@ -677,374 +811,463 @@ export default function PaqueteScreen() {
           resetForm();
         }}
       >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <View style={styles.modalHeaderContent}>
-              <FontAwesome5
-                name="box"
-                size={18}
-                color="#ffffff"
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.modalHeaderTitle}>
-                {modoEdicion ? 'Actualizar Paquete' : 'Nuevo Paquete'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => {
-                setModalVisible(false);
-                resetForm();
-              }}
-              style={styles.modalCloseButton}
-            >
-              <MaterialIcons name="close" size={24} color="#ffffff" />
-            </TouchableOpacity>
-          </View>
+                    <SafeAreaView style={styles.modalContainer}>
+                      <View style={styles.modalHeader}>
+                        <View style={styles.modalHeaderContent}>
+                          <FontAwesome5
+                            name="box"
+                            size={18}
+                            color="#ffffff"
+                            style={{ marginRight: 8 }}
+                          />
+                          <Text style={styles.modalHeaderTitle}>
+                            {modoEdicion ? 'Actualizar Paquete' : 'Nuevo Paquete'}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setModalVisible(false);
+                            resetForm();
+                          }}
+                          style={styles.modalCloseButton}
+                        >
+                          <MaterialIcons name="close" size={24} color="#ffffff" />
+                        </TouchableOpacity>
+                      </View>
 
-          <ScrollView style={styles.modalBody}>
-            {paqueteActual && (
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Código</Text>
-                <TextInput
-                  style={styles.input}
-                  value={paqueteActual.codigoSolicitud || '—'}
-                  editable={false}
-                />
-              </View>
-            )}
+                      <ScrollView style={styles.modalBody}>
+                        {paqueteActual && (
+                          <View style={styles.formGroup}>
+                            <Text style={styles.label}>Código</Text>
+                            <TextInput
+                              style={styles.input}
+                              value={paqueteActual.codigoSolicitud || '—'}
+                              editable={false}
+                            />
+                          </View>
+                        )}
 
-            {paqueteActual && (
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Fecha Aprobación</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formatFechaAprobacion(paqueteActual.fechaAprobacion) || '—'}
-                  editable={false}
-                />
-              </View>
-            )}
+                        {paqueteActual && (
+                          <View style={styles.formGroup}>
+                            <Text style={styles.label}>Fecha Aprobación</Text>
+                            <TextInput
+                              style={styles.input}
+                              value={formatFechaAprobacion(paqueteActual.fechaAprobacion) || '—'}
+                              editable={false}
+                            />
+                          </View>
+                        )}
+
+                        <View style={styles.formGroup}>
+                          <Text style={styles.label}>Estado *</Text>
+
+                          <TouchableOpacity
+                            style={styles.dropdownBox}
+                            onPress={() => setShowEstadoPicker(true)}
+                          >
+                            <Text style={styles.dropdownText}>
+                              {estadoEntrega
+                                ? getEstadoLabelById(estadoEntrega)
+                                : 'Tocar para seleccionar estado'}
+                            </Text>
+                          </TouchableOpacity>
+
+                          <Text style={styles.smallTextMuted}>
+                            {estadoEntrega
+                              ? `Seleccionado: ${getEstadoLabelById(estadoEntrega)}`
+                              : paqueteActual
+                                ? `Estado actual: ${paqueteActual.estadoNombre || '—'}`
+                                : 'Ningún estado seleccionado.'}
+                          </Text>
+                        </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Estado *</Text>
+              <Text style={styles.label}>Conductor asignado (opcional)</Text>
 
               <TouchableOpacity
                 style={styles.dropdownBox}
-                onPress={() => setShowEstadoPicker(true)}
+                onPress={() => setShowConductorPicker(true)}
               >
                 <Text style={styles.dropdownText}>
-                  {estadoEntrega
-                    ? getEstadoLabelById(estadoEntrega)
-                    : 'Tocar para seleccionar estado'}
+                  {conductorId
+                    ? getConductorLabelById(conductorId)
+                    : 'Tocar para seleccionar conductor'}
                 </Text>
               </TouchableOpacity>
 
               <Text style={styles.smallTextMuted}>
-                {estadoEntrega
-                  ? `Seleccionado: ${getEstadoLabelById(estadoEntrega)}`
-                  : paqueteActual
-                    ? `Estado actual: ${paqueteActual.estadoNombre || '—'}`
-                    : 'Ningún estado seleccionado.'}
+                {conductorId
+                  ? `Seleccionado: ${getConductorLabelById(conductorId)}`
+                  : 'Ningún conductor asignado.'}
               </Text>
             </View>
 
-<View style={styles.formGroup}>
-  <Text style={styles.label}>Conductor asignado (opcional)</Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Vehículo asignado</Text>
 
-  <TouchableOpacity
-    style={styles.dropdownBox}
-    onPress={() => setShowConductorPicker(true)}
-  >
-    <Text style={styles.dropdownText}>
-      {conductorId
-        ? getConductorLabelById(conductorId)
-        : 'Tocar para seleccionar conductor'}
-    </Text>
-  </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.dropdownBox}
+                onPress={() => setShowVehiculoPicker(true)}
+              >
+                <Text style={styles.dropdownText}>
+                  {vehiculoId
+                    ? getVehiculoLabelById(vehiculoId)
+                    : 'Tocar para seleccionar vehículo'}
+                </Text>
+              </TouchableOpacity>
 
-  <Text style={styles.smallTextMuted}>
-    {conductorId
-      ? `Seleccionado: ${getConductorLabelById(conductorId)}`
-      : 'Ningún conductor asignado.'}
-  </Text>
-</View>
-
-<View style={styles.formGroup}>
-  <Text style={styles.label}>Vehículo asignado</Text>
-
-  <TouchableOpacity
-    style={styles.dropdownBox}
-    onPress={() => setShowVehiculoPicker(true)}
-  >
-    <Text style={styles.dropdownText}>
-      {vehiculoId
-        ? getVehiculoLabelById(vehiculoId)
-        : 'Tocar para seleccionar vehículo'}
-    </Text>
-  </TouchableOpacity>
-
-  <Text style={styles.smallTextMuted}>
-    {vehiculoId
-      ? `Seleccionado: ${getVehiculoLabelById(vehiculoId)}`
-      : 'Ningún vehículo asignado.'}
-  </Text>
-</View>
+              <Text style={styles.smallTextMuted}>
+                {vehiculoId
+                  ? `Seleccionado: ${getVehiculoLabelById(vehiculoId)}`
+                  : 'Ningún vehículo asignado.'}
+              </Text>
+            </View>
 
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Zona o Comunidad</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej: Zona Sur, Centro, Norte..."
-                value={zona}
-                onChangeText={setZona}
-                placeholderTextColor={adminlteColors.muted}
-              />
-            </View>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Ubicación actual (automática)</Text>
-
-              <View style={styles.mapaContainer}>
-                <MapView
-                  style={{ flex: 1 }}
-                  region={{
-                    latitude: latitud ? parseFloat(latitud) : -17.7833,
-                    longitude: longitud ? parseFloat(longitud) : -63.1821,
-                    latitudeDelta: 0.005,
-                    longitudeDelta: 0.005,
+              <View style={styles.input}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: adminlteColors.dark,
                   }}
-                  scrollEnabled={false}
-                  zoomEnabled={false}
-                  rotateEnabled={false}
-                  pitchEnabled={false}
-                  pointerEvents="none"
+                  numberOfLines={2}
                 >
-                  {latitud && longitud && (
-                    <Marker
-                      coordinate={{
-                        latitude: parseFloat(latitud),
-                        longitude: parseFloat(longitud),
-                      }}
-                      pinColor="red"
-                    />
-                  )}
-                </MapView>
+                  {zona || ubicacionActual || 'Ubicación no disponible'}
+                </Text>
               </View>
 
               <Text style={styles.smallTextMuted}>
-                Esta ubicación se toma de tu dispositivo y no puede modificarse.
+                Este valor se obtiene automáticamente desde tu ubicación y no puede modificarse.
               </Text>
-
-              {ubicacionActual ? (
-                <Text style={styles.smallTextMuted}>{ubicacionActual}</Text>
-              ) : null}
             </View>
+                       <View style={styles.formGroup}>
+                          <Text style={styles.label}>Ubicación actual (automática)</Text>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Imagen (obligatoria)</Text>
+                          <View style={styles.mapaContainer}>
+                            <MapView
+                              style={{ flex: 1 }}
+                              region={{
+                                latitude: latitud ? parseFloat(latitud) : -17.7833,
+                                longitude: longitud ? parseFloat(longitud) : -63.1821,
+                                latitudeDelta: 0.005,
+                                longitudeDelta: 0.005,
+                              }}
+                              scrollEnabled={false}
+                              zoomEnabled={false}
+                              rotateEnabled={false}
+                              pitchEnabled={false}
+                              pointerEvents="none"
+                            >
+                              {latitud && longitud && (
+                                <Marker
+                                  coordinate={{
+                                    latitude: parseFloat(latitud),
+                                    longitude: parseFloat(longitud),
+                                  }}
+                                  pinColor="red"
+                                />
+                              )}
+                            </MapView>
+                          </View>
 
-            <View style={styles.imageButtonsRow}>
+                          <Text style={styles.smallTextMuted}>
+                            Esta ubicación se toma de tu dispositivo y no puede modificarse.
+                          </Text>
+
+                          {isLoadingUbicacion && (
+                            <Text style={styles.smallTextMuted}>Obteniendo ubicación…</Text>
+                          )}
+
+                          {ubicacionError ? (
+                            <Text style={[styles.smallTextMuted, { color: 'red' }]}>
+                              {ubicacionError}
+                            </Text>
+                          ) : null}
+                        </View>
+
+
+                      <View style={styles.formGroup}>
+                        <Text style={styles.label}>Imagen (obligatoria)</Text>
+
+                        <View style={styles.imageButtonsRow}>
+                          <TouchableOpacity
+                            onPress={tomarFoto}
+                            style={styles.btnImagenSecundario}
+                          >
+                            <FontAwesome5
+                              name="camera"
+                              size={14}
+                              color="#ffffff"
+                              style={{ marginRight: 6 }}
+                            />
+                            <Text style={styles.btnImagenText}>Tomar foto</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            onPress={seleccionarImagen}
+                            style={styles.btnImagenPrimario}
+                          >
+                            <FontAwesome5
+                              name="images"
+                              size={14}
+                              color="#ffffff"
+                              style={{ marginRight: 6 }}
+                            />
+                            <Text style={styles.btnImagenText}>Galería</Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        {imagenUri && (
+                          <Image
+                            source={{ uri: imagenUri }}
+                            style={styles.previewImagen}
+                            resizeMode="cover"
+                          />
+                        )}
+
+                        <Text style={styles.smallTextMuted}>
+                          Esta imagen se usará como evidencia de la entrega del paquete.
+                        </Text>
+                      </View>
+
+                      </ScrollView>
+
+                      <View style={styles.modalFooter}>
+                        <TouchableOpacity
+                          style={styles.modalFooterButtonSecondary}
+                          onPress={() => {
+                            setModalVisible(false);
+                            resetForm();
+                          }}
+                        >
+                          <Text style={styles.modalFooterButtonText}>Cancelar</Text>
+                        </TouchableOpacity>
+                      <TouchableOpacity
+                          style={[
+                            styles.modalFooterButtonPrimary,
+                            ((!estadoEntrega.trim() || !imagenUri) || isSaving) &&
+                              styles.modalFooterButtonDisabled,
+                          ]}
+                          disabled={!estadoEntrega.trim() || !imagenUri || isSaving}
+                          onPress={guardarCambiosPaquete}
+                        >
+                          <Text style={styles.modalFooterButtonText}>
+                            {isSaving ? 'Guardando...' : 'Guardar Cambios'}
+                          </Text>
+                        </TouchableOpacity>
+
+                      </View>
+            <Modal
+              visible={showConductorPicker}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowConductorPicker(false)}
+            >
               <TouchableOpacity
-                onPress={tomarFoto}
-                style={styles.btnImagenSecundario}
+                style={styles.pickerOverlay}
+                activeOpacity={1}
+                onPressOut={() => setShowConductorPicker(false)}
               >
-                <FontAwesome5
-                  name="camera"
-                  size={14}
-                  color="#ffffff"
-                  style={{ marginRight: 6 }}
-                />
-                <Text style={styles.btnImagenText}>Tomar foto</Text>
-              </TouchableOpacity>
+                <View style={styles.pickerModal}>
+                  <Text style={styles.pickerTitle}>Seleccionar conductor</Text>
+                  <ScrollView style={{ maxHeight: 300 }}>
+                    <TouchableOpacity
+                      style={styles.pickerItem}
+                      onPress={() => {
+                        setConductorId('');
+                        setShowConductorPicker(false);
+                      }}
+                    >
+                      <Text style={styles.pickerItemText}>— Sin asignar —</Text>
+                    </TouchableOpacity>
 
+                    {conductores.map(c => {
+                      const label = getConductorLabelById(c.conductor_id);
+                      return (
+                        <TouchableOpacity
+                          key={c.conductor_id}
+                          style={styles.pickerItem}
+                          onPress={() => {
+                            setConductorId(String(c.conductor_id));
+                            setShowConductorPicker(false);
+                          }}
+                        >
+                          <Text style={styles.pickerItemText}>{label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+
+            <Modal
+              visible={showVehiculoPicker}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowVehiculoPicker(false)}
+            >
               <TouchableOpacity
-                onPress={seleccionarImagen}
-                style={styles.btnImagenPrimario}
+                style={styles.pickerOverlay}
+                activeOpacity={1}
+                onPressOut={() => setShowVehiculoPicker(false)}
               >
-                <FontAwesome5
-                  name="images"
-                  size={14}
-                  color="#ffffff"
-                  style={{ marginRight: 6 }}
-                />
-                <Text style={styles.btnImagenText}>Galería</Text>
+                <View style={styles.pickerModal}>
+                  <Text style={styles.pickerTitle}>Seleccionar vehículo</Text>
+                  <ScrollView style={{ maxHeight: 300 }}>
+                    <TouchableOpacity
+                      style={styles.pickerItem}
+                      onPress={() => {
+                        setVehiculoId('');
+                        setShowVehiculoPicker(false);
+                      }}
+                    >
+                      <Text style={styles.pickerItemText}>— Sin asignar —</Text>
+                    </TouchableOpacity>
+
+                    {vehiculos.map(v => (
+                      <TouchableOpacity
+                        key={v.id_vehiculo}
+                        style={styles.pickerItem}
+                        onPress={() => {
+                          setVehiculoId(String(v.id_vehiculo));
+                          setShowVehiculoPicker(false);
+                        }}
+                      >
+                        <Text style={styles.pickerItemText}>
+                          {getVehiculoLabelById(v.id_vehiculo)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
               </TouchableOpacity>
-            </View>
-
-            {imagenUri && (
-              <Image
-                source={{ uri: imagenUri }}
-                style={styles.previewImagen}
-                resizeMode="cover"
-              />
-            )}
-
-            <Text style={styles.smallTextMuted}>
-              Esta imagen se usará como evidencia de la entrega del paquete.
-            </Text>
-          </View>
-
-          </ScrollView>
-
-          <View style={styles.modalFooter}>
-            <TouchableOpacity
-              style={styles.modalFooterButtonSecondary}
-              onPress={() => {
-                setModalVisible(false);
-                resetForm();
-              }}
+            </Modal>
+            <Modal
+              visible={showEstadoPicker}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowEstadoPicker(false)}
             >
-              <Text style={styles.modalFooterButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.modalFooterButtonPrimary,
-                (!estadoEntrega.trim() || !imagenUri) &&
-                  styles.modalFooterButtonDisabled,
-              ]}
-              disabled={!estadoEntrega.trim() || !imagenUri}
-              onPress={guardarCambiosPaquete}
-            >
-              <Text style={styles.modalFooterButtonText}>Guardar Cambios</Text>
-            </TouchableOpacity>
-          </View>
-<Modal
-  visible={showConductorPicker}
-  transparent
-  animationType="fade"
-  onRequestClose={() => setShowConductorPicker(false)}
->
-  <TouchableOpacity
-    style={styles.pickerOverlay}
-    activeOpacity={1}
-    onPressOut={() => setShowConductorPicker(false)}
-  >
-    <View style={styles.pickerModal}>
-      <Text style={styles.pickerTitle}>Seleccionar conductor</Text>
-      <ScrollView style={{ maxHeight: 300 }}>
-        <TouchableOpacity
-          style={styles.pickerItem}
-          onPress={() => {
-            setConductorId('');
-            setShowConductorPicker(false);
-          }}
-        >
-          <Text style={styles.pickerItemText}>— Sin asignar —</Text>
-        </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.pickerOverlay}
+                activeOpacity={1}
+                onPressOut={() => setShowEstadoPicker(false)}
+              >
+                <View style={styles.pickerModal}>
+                  <Text style={styles.pickerTitle}>Seleccionar estado</Text>
+                  <ScrollView style={{ maxHeight: 300 }}>
+                    <TouchableOpacity
+                      style={styles.pickerItem}
+                      onPress={() => {
+                        setEstadoEntrega('');
+                        setShowEstadoPicker(false);
+                      }}
+                    >
+                      <Text style={styles.pickerItemText}>— Sin seleccionar —</Text>
+                    </TouchableOpacity>
 
-        {conductores.map(c => {
-          const label = getConductorLabelById(c.conductor_id);
-          return (
-            <TouchableOpacity
-              key={c.conductor_id}
-              style={styles.pickerItem}
-              onPress={() => {
-                setConductorId(String(c.conductor_id));
-                setShowConductorPicker(false);
-              }}
-            >
-              <Text style={styles.pickerItemText}>{label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  </TouchableOpacity>
-</Modal>
+                    {estados.map((e) => (
+                      <TouchableOpacity
+                        key={e.id_estado}
+                        style={styles.pickerItem}
+                        onPress={() => {
+                          const idSel = String(e.id_estado);
+                          setEstadoEntrega(idSel);
 
-<Modal
-  visible={showVehiculoPicker}
-  transparent
-  animationType="fade"
-  onRequestClose={() => setShowVehiculoPicker(false)}
->
-  <TouchableOpacity
-    style={styles.pickerOverlay}
-    activeOpacity={1}
-    onPressOut={() => setShowVehiculoPicker(false)}
-  >
-    <View style={styles.pickerModal}>
-      <Text style={styles.pickerTitle}>Seleccionar vehículo</Text>
-      <ScrollView style={{ maxHeight: 300 }}>
-        <TouchableOpacity
-          style={styles.pickerItem}
-          onPress={() => {
-            setVehiculoId('');
-            setShowVehiculoPicker(false);
-          }}
-        >
-          <Text style={styles.pickerItemText}>— Sin asignar —</Text>
-        </TouchableOpacity>
+                          const nombre = (e.nombre_estado || '').toLowerCase();
+                          if (nombre.includes('entregado')) {
+                            setFechaEntrega((prev) => prev || new Date().toISOString().slice(0, 10));
+                          } else {
+                            setFechaEntrega('');
+                          }
 
-        {vehiculos.map(v => (
-          <TouchableOpacity
-            key={v.id_vehiculo}
-            style={styles.pickerItem}
-            onPress={() => {
-              setVehiculoId(String(v.id_vehiculo));
-              setShowVehiculoPicker(false);
-            }}
-          >
-            <Text style={styles.pickerItemText}>
-              {getVehiculoLabelById(v.id_vehiculo)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  </TouchableOpacity>
-</Modal>
-<Modal
-  visible={showEstadoPicker}
-  transparent
-  animationType="fade"
-  onRequestClose={() => setShowEstadoPicker(false)}
->
-  <TouchableOpacity
-    style={styles.pickerOverlay}
-    activeOpacity={1}
-    onPressOut={() => setShowEstadoPicker(false)}
-  >
-    <View style={styles.pickerModal}>
-      <Text style={styles.pickerTitle}>Seleccionar estado</Text>
-      <ScrollView style={{ maxHeight: 300 }}>
-        <TouchableOpacity
-          style={styles.pickerItem}
-          onPress={() => {
-            setEstadoEntrega('');
-            setShowEstadoPicker(false);
-          }}
-        >
-          <Text style={styles.pickerItemText}>— Sin seleccionar —</Text>
-        </TouchableOpacity>
+                          setShowEstadoPicker(false);
+                        }}
+                      >
+                        <Text style={styles.pickerItemText}>{e.nombre_estado}</Text>
+                      </TouchableOpacity>
+                    ))}
 
-        {estados.map((e) => (
-          <TouchableOpacity
-            key={e.id_estado}
-            style={styles.pickerItem}
-            onPress={() => {
-              const idSel = String(e.id_estado);
-              setEstadoEntrega(idSel);
+                  </ScrollView>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+            <Modal
+                visible={showCodigoModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => {
+                  if (isVerifying) return;
+                  setShowCodigoModal(false);
+                }}
+              >
+                <View style={styles.pickerOverlay}>
+                  <View style={styles.codigoModal}>
+                    <Text style={styles.pickerTitle}>Confirmar entrega</Text>
+                    <Text style={styles.smallTextMuted}>
+                      Se envió un código numérico de 4 dígitos al correo del solicitante.
+                      Pídele que te lo dicte e ingrésalo para confirmar la entrega del paquete.
+                    </Text>
 
-              const nombre = (e.nombre_estado || '').toLowerCase();
-              if (nombre.includes('entregado')) {
-                setFechaEntrega((prev) => prev || new Date().toISOString().slice(0, 10));
-              } else {
-                setFechaEntrega('');
-              }
+                    <TextInput
+                      style={[
+                        styles.input,
+                        { textAlign: 'center', letterSpacing: 8, marginTop: 12 },
+                      ]}
+                      value={codigoEntrega}
+                      onChangeText={(txt) => {
+                        setCodigoError('');
+                        setCodigoEntrega(txt.replace(/[^0-9]/g, '').slice(0, 4));
+                      }}
+                      keyboardType="number-pad"
+                      maxLength={4}
+                      placeholder="••••"
+                    />
 
-              setShowEstadoPicker(false);
-            }}
-          >
-            <Text style={styles.pickerItemText}>{e.nombre_estado}</Text>
-          </TouchableOpacity>
-        ))}
+                    {codigoError ? (
+                      <Text style={[styles.smallTextMuted, { color: 'red', marginTop: 4 }]}>
+                        {codigoError}
+                      </Text>
+                    ) : null}
 
-      </ScrollView>
-    </View>
-  </TouchableOpacity>
-</Modal>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'flex-end',
+                        marginTop: 16,
+                      }}
+                    >
+                      <TouchableOpacity
+                        style={[styles.modalFooterButtonSecondary, { marginRight: 8 }]}
+                        onPress={() => {
+                          if (isVerifying) return;
+                          setShowCodigoModal(false);
+                        }}
+                      >
+                        <Text style={styles.modalFooterButtonText}>Cancelar</Text>
+                      </TouchableOpacity>
 
+                      <TouchableOpacity
+                        style={[
+                          styles.modalFooterButtonPrimary,
+                          (codigoEntrega.length !== 4 || isVerifying) &&
+                            styles.modalFooterButtonDisabled,
+                        ]}
+                        disabled={codigoEntrega.length !== 4 || isVerifying}
+                        onPress={confirmarCodigoEntrega}
+                      >
+                        <Text style={styles.modalFooterButtonText}>
+                          {isVerifying ? 'Verificando...' : 'Confirmar entrega'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
         </SafeAreaView>
       </Modal>
     </AdminLayout>
@@ -1058,6 +1281,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: adminlteColors.dark,
   },
+  codigoModal: {
+  width: '85%',
+  backgroundColor: '#ffffff',
+  borderRadius: 10,
+  padding: 16,
+},
   listaContainer: { flex: 1 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   itemCard: {

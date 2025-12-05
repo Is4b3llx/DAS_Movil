@@ -13,7 +13,55 @@ const axiosInstance = axios.create({
     Accept: 'application/json',
   },
 });
+export const sendEntregaCode = async (id, estadoId) => {
+  const net = await NetInfo.fetch();
+  if (!net.isConnected) {
+    throw new Error('Sin conexión a internet para enviar el código de entrega.');
+  }
 
+  try {
+    const res = await api.post(`/paquete/${id}/entrega/send-code`, {
+      estado_id: estadoId,
+    }, {
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+    console.log('sendEntregaCode response', res.data);
+    return res.data;
+  } catch (error) {
+    console.error(
+      'Error al enviar código de entrega:',
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const verifyEntregaCode = async (id, codigo) => {
+  const net = await NetInfo.fetch();
+  if (!net.isConnected) {
+    throw new Error('Sin conexión a internet para verificar el código de entrega.');
+  }
+
+  try {
+    const res = await api.post(`/paquete/${id}/entrega/verify-code`, {
+      codigo,
+    }, {
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    return res.data;
+  } catch (error) {
+    console.error(
+      'Error al verificar código de entrega:',
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
 export const getPaquetes = async () => {
 
   const net = await NetInfo.fetch();
