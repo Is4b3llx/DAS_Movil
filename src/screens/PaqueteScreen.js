@@ -226,6 +226,14 @@ export default function PaqueteScreen() {
       return 'otro';
     };
 
+    const getEstadoBadgeColor = (nombre) => {
+      const value = (nombre || '').toLowerCase();
+      if (value.includes('pendiente')) return adminlteColors.warning;
+      if (value.includes('camino')) return adminlteColors.info;
+      if (value.includes('entreg')) return adminlteColors.success;
+      return adminlteColors.secondary;
+    };
+
     const getFechaReferencia = (p) => {
       const raw = p.fechaEntrega || p.fechaAprobacion;
       if (!raw) return null;
@@ -554,17 +562,13 @@ export default function PaqueteScreen() {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
       }).format(date);
     } catch (e) {
       const pad = (n) => String(n).padStart(2, '0');
       const d = date.getDate();
       const m = date.getMonth() + 1;
       const y = date.getFullYear();
-      const h = date.getHours();
-      const min = date.getMinutes();
-      return `${pad(d)}/${pad(m)}/${y} ${pad(h)}:${pad(min)}`;
+      return `${pad(d)}/${pad(m)}/${y}`;
     }
   };
 
@@ -690,21 +694,20 @@ export default function PaqueteScreen() {
                     Paquete {p.codigo ? p.codigoSolicitud : `ID ${String(p.id).slice(-4)}`}
                   </Text>
                 </View>
+                <View
+                  style={[
+                    styles.estadoBadge,
+                    { backgroundColor: getEstadoBadgeColor(p.estadoNombre) },
+                  ]}
+                >
+                  <Text style={styles.estadoBadgeText}>
+                    {(p.estadoNombre || '—').toUpperCase()}
+                  </Text>
+                </View>
               </View>
               
               
               <View style={styles.itemBody}>
-                <View style={styles.row}>
-                  <FontAwesome5
-                    name="shipping-fast"
-                    size={12}
-                    color={adminlteColors.primary}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.label}>Estado de Entrega:</Text>
-                </View>
-                <Text style={styles.valuePrimary}>{p.estadoNombre || '—'}</Text>
-
                 <View style={styles.row}>
                   <FontAwesome5
                     name="user"
@@ -1308,6 +1311,13 @@ const styles = StyleSheet.create({
   },
   itemHeaderContent: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   itemTitle: { fontSize: 15, fontWeight: '600', color: adminlteColors.dark },
+  estadoBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  estadoBadgeText: { fontSize: 11, fontWeight: '700', color: '#ffffff' },
   itemBody: { padding: 12 },
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   label: { fontSize: 13, fontWeight: '600', color: adminlteColors.dark },
