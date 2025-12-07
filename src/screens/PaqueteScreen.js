@@ -65,6 +65,9 @@ export default function PaqueteScreen() {
   const [isLoadingUbicacion, setIsLoadingUbicacion] = useState(false);
   const [ubicacionError, setUbicacionError] = useState('');
 
+  const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
+  const [paqueteSeleccionado, setPaqueteSeleccionado] = useState(null);
+
   const filtrosEstado = [
     { id: 'todos', label: 'Todos', icon: 'list' },
     { id: 'pendiente', label: 'Pendiente', icon: 'clock' },
@@ -152,14 +155,288 @@ export default function PaqueteScreen() {
           ? solicitudesIndex[solicitudKey]
           : null;
 
+      const destinoRaw =
+        solicitud?.destino ??
+        solicitud?.destino_data ??
+        solicitud?.destino_info ??
+        solicitud?.ubicacion_destino ??
+        solicitud?.destinoSolicitud ??
+        null;
+
       const codigoSolicitud =
         solicitud?.codigo ??
         solicitud?.codigo_seguimiento ??
         null;
+
+      const comunidadDestino =
+        destinoRaw?.comunidad ??
+        destinoRaw?.comunidad_nombre ??
+        destinoRaw?.nombre_comunidad ??
+        destinoRaw?.nombre ??
+        null;
+
       const comunidadSolicitud =
         solicitud?.comunidad ??
         solicitud?.comunidad_solicitante ??
         solicitud?.comunidad_nombre ??
+        comunidadDestino ??
+        null;
+
+      const solicitanteRaw =
+        solicitud?.solicitante ??
+        solicitud?.solicitante_data ??
+        solicitud?.solicitante_info ??
+        solicitud?.datos_solicitante ??
+        null;
+
+      let solicitanteNombre = '—';
+      let solicitanteCi = '—';
+
+      if (typeof solicitanteRaw === 'string') {
+        const limpio = solicitanteRaw.trim();
+        if (limpio) {
+          solicitanteNombre = limpio;
+        }
+      } else if (solicitanteRaw && typeof solicitanteRaw === 'object') {
+        const partesNombre = [
+          solicitanteRaw.nombre,
+          solicitanteRaw.apellido,
+          solicitanteRaw.primer_apellido,
+          solicitanteRaw.segundo_apellido,
+        ]
+          .map((parte) => (parte ? String(parte).trim() : ''))
+          .filter(Boolean);
+
+        const nombreAlterno =
+          solicitanteRaw.nombre_completo ??
+          solicitanteRaw.nombreCompleto ??
+          solicitanteRaw.full_name ??
+          solicitanteRaw.fullName ??
+          null;
+
+        if (partesNombre.length > 0) {
+          solicitanteNombre = partesNombre.join(' ');
+        } else if (nombreAlterno) {
+          const limpio = String(nombreAlterno).trim();
+          if (limpio) {
+            solicitanteNombre = limpio;
+          }
+        }
+
+        const ciAlterno =
+          solicitanteRaw.ci ??
+          solicitanteRaw.carnet ??
+          solicitanteRaw.documento ??
+          solicitanteRaw.documento_identidad ??
+          solicitanteRaw.numero_documento ??
+          null;
+
+        if (ciAlterno != null) {
+          const limpioCi = String(ciAlterno).trim();
+          if (limpioCi) {
+            solicitanteCi = limpioCi;
+          }
+        }
+      }
+
+      const tipoEmergenciaRaw =
+        solicitud?.tipoEmergencia ??
+        solicitud?.tipo_emergencia ??
+        solicitud?.tipo_emergencia_data ??
+        solicitud?.tipo_emergencia_detalle ??
+        solicitud?.tipo_emergencia_info ??
+        solicitud?.emergencia_tipo ??
+        null;
+
+      let tipoEmergencia = '—';
+
+      if (typeof tipoEmergenciaRaw === 'string') {
+        const limpio = tipoEmergenciaRaw.trim();
+        if (limpio) {
+          tipoEmergencia = limpio;
+        }
+      } else if (tipoEmergenciaRaw && typeof tipoEmergenciaRaw === 'object') {
+        const candidato =
+          tipoEmergenciaRaw.nombre ??
+          tipoEmergenciaRaw.descripcion ??
+          tipoEmergenciaRaw.titulo ??
+          tipoEmergenciaRaw.label ??
+          null;
+
+        if (candidato) {
+          const limpio = String(candidato).trim();
+          if (limpio) {
+            tipoEmergencia = limpio;
+          }
+        }
+      }
+
+      if (tipoEmergencia === '—') {
+        const alterno =
+          solicitud?.tipo_emergencia_nombre ??
+          solicitud?.tipo_emergencia ??
+          solicitud?.emergencia ??
+          null;
+
+        if (alterno) {
+          const limpio = String(alterno).trim();
+          if (limpio) {
+            tipoEmergencia = limpio;
+          }
+        }
+      }
+
+      const referenciaNombre =
+        solicitud?.referencia_nombre ??
+        solicitud?.nombre_referencia ??
+        solicitud?.contacto_referencia_nombre ??
+        solicitud?.referenciaNombre ??
+        solicitud?.persona_referencia?.nombre ??
+        solicitud?.referencia?.nombre ??
+        null;
+
+      const referenciaTelefono =
+        solicitud?.referencia_celular ??
+        solicitud?.celular_referencia ??
+        solicitud?.referencia_telefono ??
+        solicitud?.telefono_referencia ??
+        solicitud?.referenciaTelefono ??
+        solicitud?.persona_referencia?.telefono ??
+        solicitud?.referencia?.telefono ??
+        null;
+
+      const voluntarioRaw =
+        p.voluntario ??
+        p.voluntario_encargado ??
+        p.voluntarioEncargado ??
+        p.voluntario_asignado ??
+        p.voluntarioAsignado ??
+        p.usuario_voluntario ??
+        p.usuarioVoluntario ??
+        p.encargado ??
+        p.encargado_voluntario ??
+        p.encargado_data ??
+        p.encargadoInfo ??
+        p.responsable ??
+        p.responsable_voluntario ??
+        solicitud?.voluntario ??
+        solicitud?.voluntario_encargado ??
+        solicitud?.encargado ??
+        null;
+
+      let voluntarioEncargado = '—';
+      let voluntarioCiEncargado = null;
+      if (typeof voluntarioRaw === 'string') {
+        const limpio = voluntarioRaw.trim();
+        if (limpio) {
+          voluntarioEncargado = limpio;
+        }
+      } else if (voluntarioRaw && typeof voluntarioRaw === 'object') {
+        const partesVoluntario = [
+          voluntarioRaw.nombre,
+          voluntarioRaw.apellido,
+          voluntarioRaw.primer_apellido,
+          voluntarioRaw.segundo_apellido,
+        ]
+          .map((parte) => (parte ? String(parte).trim() : ''))
+          .filter(Boolean);
+
+        const nombreAlterno =
+          voluntarioRaw.nombre_completo ??
+          voluntarioRaw.nombreCompleto ??
+          voluntarioRaw.full_name ??
+          voluntarioRaw.fullName ??
+          voluntarioRaw.alias ??
+          null;
+
+        const personaVoluntario =
+          voluntarioRaw.persona ??
+          voluntarioRaw.persona_data ??
+          voluntarioRaw.personaInfo ??
+          voluntarioRaw.datos_persona ??
+          null;
+
+        if (partesVoluntario.length === 0 && personaVoluntario) {
+          const partesPersona = [
+            personaVoluntario.nombre,
+            personaVoluntario.apellido,
+            personaVoluntario.primer_apellido,
+            personaVoluntario.segundo_apellido,
+          ]
+            .map((parte) => (parte ? String(parte).trim() : ''))
+            .filter(Boolean);
+
+          if (partesPersona.length > 0) {
+            partesVoluntario.push(...partesPersona);
+          }
+        }
+
+        const usuarioVoluntario =
+          voluntarioRaw.usuario ??
+          voluntarioRaw.user ??
+          voluntarioRaw.usuario_data ??
+          null;
+
+        if (partesVoluntario.length > 0) {
+          voluntarioEncargado = partesVoluntario.join(' ');
+        } else if (nombreAlterno) {
+          const limpio = String(nombreAlterno).trim();
+          if (limpio) {
+            voluntarioEncargado = limpio;
+          }
+        } else if (usuarioVoluntario?.name) {
+          const limpio = String(usuarioVoluntario.name).trim();
+          if (limpio) {
+            voluntarioEncargado = limpio;
+          }
+        }
+
+        if (voluntarioEncargado === '—' && voluntarioRaw.nombre_usuario) {
+          const limpio = String(voluntarioRaw.nombre_usuario).trim();
+          if (limpio) {
+            voluntarioEncargado = limpio;
+          }
+        }
+
+        const ciCandidatos = [
+          voluntarioRaw.ci,
+          voluntarioRaw.carnet,
+          voluntarioRaw.documento,
+          voluntarioRaw.documento_identidad,
+          voluntarioRaw.numero_documento,
+          voluntarioRaw.ci_encargado,
+          voluntarioRaw.ciEncargado,
+          personaVoluntario?.ci,
+          personaVoluntario?.carnet,
+          personaVoluntario?.documento,
+          personaVoluntario?.documento_identidad,
+          personaVoluntario?.numero_documento,
+        ];
+
+        const ciEncontrado = ciCandidatos.find((ci) => ci != null && String(ci).trim() !== '');
+        if (ciEncontrado != null) {
+          voluntarioCiEncargado = String(ciEncontrado).trim();
+        }
+      }
+
+      if (voluntarioCiEncargado) {
+        if (voluntarioEncargado === '—') {
+          voluntarioEncargado = `CI ${voluntarioCiEncargado}`;
+        } else {
+          voluntarioEncargado = `${voluntarioEncargado} - CI ${voluntarioCiEncargado}`;
+        }
+      }
+
+      const fechaCreacion =
+        p.fecha_creacion ??
+        p.created_at ??
+        p.fecha_aprobacion ??
+        null;
+
+      const fechaActualizacion =
+        p.updated_at ??
+        p.fecha_actualizacion ??
+        p.fecha_revision ??
         null;
 
       return {
@@ -172,12 +449,20 @@ export default function PaqueteScreen() {
         id_solicitud: p.id_solicitud,
         codigoSolicitud,
         comunidadSolicitud,
+        solicitanteNombre,
+        solicitanteCi,
+        tipoEmergencia,
+        referenciaNombre: referenciaNombre ? String(referenciaNombre).trim() : null,
+        referenciaTelefono: referenciaTelefono ? String(referenciaTelefono).trim() : null,
+        voluntarioEncargado,
 
         estado_id: p.estado_id,
         estadoNombre: p.estado?.nombre_estado ?? '—',
         ubicacionActual: p.ubicacion_actual ?? '—',
 
         fechaAprobacion: p.fecha_aprobacion ?? p.created_at ?? '—',
+        fechaCreacion,
+        fechaActualizacion,
 
         fechaEntrega: p.fecha_entrega ?? null,
         latitud: p.latitud,
@@ -201,6 +486,74 @@ export default function PaqueteScreen() {
     const found = vehiculos.find((v) => String(v.id_vehiculo) === String(id));
     if (!found) return `ID ${id}`;
     return found.placa || `Vehículo ID ${id}`;
+  };
+
+  const getConductorDetalle = (id) => {
+    if (!id) return 'Sin asignar';
+
+    const found = conductores.find((c) => String(c.conductor_id) === String(id));
+    if (!found) return `ID ${id}`;
+
+    const partesNombre = [
+      found.nombre,
+      found.apellido,
+      found.primer_apellido,
+      found.segundo_apellido,
+    ]
+      .map((parte) => (parte ? String(parte).trim() : ''))
+      .filter(Boolean);
+
+    const nombre = partesNombre.length > 0
+      ? partesNombre.join(' ')
+      : (found.nombre_completo || found.full_name || found.alias || `Conductor ${found.conductor_id}`);
+
+    const ci =
+      found.ci ??
+      found.documento ??
+      found.documento_identidad ??
+      found.numero_documento ??
+      null;
+
+    if (ci == null || String(ci).trim() === '') {
+      return nombre;
+    }
+
+    return `${nombre} - CI ${String(ci).trim()}`;
+  };
+
+  const getVehiculoDetalle = (id) => {
+    if (!id) return 'Sin asignar';
+
+    const found = vehiculos.find((v) => String(v.id_vehiculo) === String(id));
+    if (!found) return `ID ${id}`;
+
+    const placa =
+      found.placa ??
+      found.placa_vehiculo ??
+      found.numero_placa ??
+      null;
+
+    const marca =
+      found.marca?.nombre_marca ??
+      found.marca?.nombre ??
+      found.marca_nombre ??
+      found.nombre_marca ??
+      found.marca ??
+      null;
+
+    const partes = [];
+    if (placa) {
+      partes.push(String(placa).trim());
+    }
+    if (marca) {
+      partes.push(String(marca).trim());
+    }
+
+    if (partes.length > 0) {
+      return partes.join(' - ');
+    }
+
+    return `Vehículo ID ${id}`;
   };
 
   const getEstadoLabelById = (id) => {
@@ -235,7 +588,7 @@ export default function PaqueteScreen() {
     };
 
     const getFechaReferencia = (p) => {
-      const raw = p.fechaEntrega || p.fechaAprobacion;
+      const raw = p.fechaActualizacion || p.fechaEntrega || p.fechaAprobacion;
       if (!raw) return null;
       const d = new Date(raw);
       return isNaN(d.getTime()) ? null : d;
@@ -248,7 +601,21 @@ export default function PaqueteScreen() {
         resultado = resultado.filter((p) => getEstadoKey(p) === filtroEstadoActivo);
       }
 
+      const estadoPrioridad = {
+        en_camino: 0,
+        pendiente: 1,
+        otro: 2,
+        entregado: 3,
+      };
+
       resultado.sort((a, b) => {
+        const pa = estadoPrioridad[getEstadoKey(a)] ?? 99;
+        const pb = estadoPrioridad[getEstadoKey(b)] ?? 99;
+
+        if (pa !== pb) {
+          return pa - pb;
+        }
+
         const fa = getFechaReferencia(a);
         const fb = getFechaReferencia(b);
 
@@ -584,6 +951,20 @@ export default function PaqueteScreen() {
     return colors[index % colors.length];
   };
 
+  const handleVerPaquete = (paquete) => {
+    if (!paquete) {
+      return;
+    }
+
+    setPaqueteSeleccionado(paquete);
+    setModalDetalleVisible(true);
+  };
+
+  const handleCerrarDetalle = () => {
+    setModalDetalleVisible(false);
+    setPaqueteSeleccionado(null);
+  };
+
   return (
     <AdminLayout>
       <Text style={styles.pageTitle}>Paquetes</Text>
@@ -715,23 +1096,54 @@ export default function PaqueteScreen() {
                     color={adminlteColors.muted}
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={styles.label}>Conductor:</Text>
+                  <Text style={styles.label}>Solicitante:</Text>
                 </View>
-                <Text style={styles.valueMuted}>
-                  {getConductorLabelById(p.id_conductor)}
-                </Text>
+                <Text style={styles.valueMuted}>{p.solicitanteNombre || '—'}</Text>
 
                 <View style={styles.row}>
                   <FontAwesome5
-                    name="truck"
+                    name="id-card"
                     size={12}
                     color={adminlteColors.muted}
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={styles.label}>Vehículo:</Text>
+                  <Text style={styles.label}>CI:</Text>
+                </View>
+                <Text style={styles.valueMuted}>{p.solicitanteCi || '—'}</Text>
+
+                <View style={styles.row}>
+                  <FontAwesome5
+                    name="users"
+                    size={12}
+                    color={adminlteColors.muted}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={styles.label}>Comunidad:</Text>
+                </View>
+                <Text style={styles.valueMuted}>{p.comunidadSolicitud || '—'}</Text>
+
+                <View style={styles.row}>
+                  <FontAwesome5
+                    name="exclamation-triangle"
+                    size={12}
+                    color={adminlteColors.muted}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={styles.label}>Emergencia:</Text>
+                </View>
+                <Text style={styles.valueMuted}>{p.tipoEmergencia || '—'}</Text>
+
+                <View style={styles.row}>
+                  <FontAwesome5
+                    name="user-tag"
+                    size={12}
+                    color={adminlteColors.muted}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={styles.label}>Voluntario encargado:</Text>
                 </View>
                 <Text style={styles.valueMuted}>
-                  {getVehiculoLabelById(p.id_vehiculo)}
+                  {p.voluntarioEncargado || 'El voluntario se asigna al iniciar la ruta'}
                 </Text>
 
                 <View style={styles.row}>
@@ -741,7 +1153,7 @@ export default function PaqueteScreen() {
                     color={adminlteColors.muted}
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={styles.label}>Ubicación Actual:</Text>
+                  <Text style={styles.label}>Ubicación:</Text>
                 </View>
                 <Text style={styles.valuePrimary}>{p.ubicacionActual || '—'}</Text>
 
@@ -752,9 +1164,9 @@ export default function PaqueteScreen() {
                     color={adminlteColors.muted}
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={styles.label}>Fecha Aprobación:</Text>
+                  <Text style={styles.label}>Fecha Creación:</Text>
                 </View>
-                <Text style={styles.valueMuted}>{formatFechaAprobacion(p.fechaAprobacion) || '—'}</Text>
+                <Text style={styles.valueMuted}>{formatFechaAprobacion(p.fechaCreacion) || '—'}</Text>
 
                 <View style={styles.row}>
                   <FontAwesome5
@@ -765,10 +1177,24 @@ export default function PaqueteScreen() {
                   />
                   <Text style={styles.label}>Fecha Entrega:</Text>
                 </View>
-                <Text style={styles.valueMuted}>{formatFechaAprobacion(p.fechaEntrega) || '-'}</Text>
+                <Text style={styles.valueMuted}>{formatFechaAprobacion(p.fechaEntrega) || '—'}</Text>
               </View>
 
-              {!esEstadoEntregado(p.estado_id) && (
+              <View style={styles.itemActions}>
+                <TouchableOpacity
+                  style={styles.btnVerPaquete}
+                  onPress={() => handleVerPaquete(p)}
+                >
+                  <FontAwesome5
+                    name="eye"
+                    size={12}
+                    color="#ffffff"
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={styles.btnVerPaqueteText}>Ver</Text>
+                </TouchableOpacity>
+
+                {!esEstadoEntregado(p.estado_id) && (
                   <TouchableOpacity
                     style={styles.btnEditarPaquete}
                     onPress={() => {
@@ -800,10 +1226,162 @@ export default function PaqueteScreen() {
                     <Text style={styles.btnEditarPaqueteText}>Actualizar</Text>
                   </TouchableOpacity>
                 )}
+              </View>
             </View>
           ))}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={modalDetalleVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={handleCerrarDetalle}
+      >
+        <View style={styles.overlayBackdrop}>
+          <View style={styles.modalCardDetalle}>
+            <View style={styles.modalHeaderDetalle}>
+              <View style={styles.modalHeaderContentDetalle}>
+                <FontAwesome5
+                  name="box-open"
+                  size={18}
+                  color="#ffffff"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.modalHeaderTitleDetalle}>Detalle de Paquete</Text>
+              </View>
+              <TouchableOpacity
+                onPress={handleCerrarDetalle}
+                style={styles.modalCloseButtonDetalle}
+              >
+                <MaterialIcons name="close" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBodyCardDetalle}>
+              {paqueteSeleccionado ? (
+                <View style={styles.detalleContentDetalle}>
+                  <View style={styles.alertInfoDetalle}>
+                    <Text style={styles.alertInfoTitleDetalle}>
+                      Paquete {paqueteSeleccionado.codigoSolicitud || paqueteSeleccionado.codigo || '—'}
+                    </Text>
+                    <Text style={styles.alertInfoTextDetalle}>
+                      Información general del envío y responsables asignados.
+                    </Text>
+                  </View>
+
+                  {(() => {
+                    const referenciaNombre =
+                      paqueteSeleccionado.referenciaNombre && paqueteSeleccionado.referenciaNombre !== ''
+                        ? paqueteSeleccionado.referenciaNombre
+                        : null;
+                    const referenciaTelefono =
+                      paqueteSeleccionado.referenciaTelefono && paqueteSeleccionado.referenciaTelefono !== ''
+                        ? paqueteSeleccionado.referenciaTelefono
+                        : null;
+
+                    let referenciaLinea = '—';
+                    if (referenciaNombre && referenciaTelefono) {
+                      referenciaLinea = `${referenciaNombre} - ${referenciaTelefono}`;
+                    } else if (referenciaNombre) {
+                      referenciaLinea = referenciaNombre;
+                    } else if (referenciaTelefono) {
+                      referenciaLinea = referenciaTelefono;
+                    }
+
+                    const fechaCreacion =
+                      formatFechaAprobacion(
+                        paqueteSeleccionado.fechaCreacion || paqueteSeleccionado.fechaAprobacion
+                      ) || '—';
+
+                    return (
+                      <>
+                        <View style={styles.detalleSectionDetalle}>
+                          <Text style={styles.detalleLabelDetalle}>Código de solicitud</Text>
+                          <Text style={styles.detalleValueDetalle}>
+                            {paqueteSeleccionado.codigoSolicitud || paqueteSeleccionado.codigo || '—'}
+                          </Text>
+                        </View>
+
+                        <View style={styles.detalleSectionDetalle}>
+                          <Text style={styles.detalleLabelDetalle}>Nombre del solicitante</Text>
+                          <Text style={styles.detalleValueDetalle}>
+                            {paqueteSeleccionado.solicitanteNombre || '—'}
+                          </Text>
+                        </View>
+
+                        <View style={styles.detalleSectionDetalle}>
+                          <Text style={styles.detalleLabelDetalle}>CI</Text>
+                          <Text style={styles.detalleValueDetalle}>
+                            {paqueteSeleccionado.solicitanteCi || '—'}
+                          </Text>
+                        </View>
+
+                        <View style={styles.detalleSectionDetalle}>
+                          <Text style={styles.detalleLabelDetalle}>Contacto de referencia</Text>
+                          <Text style={styles.detalleValueDetalle}>{referenciaLinea}</Text>
+                        </View>
+
+                        <View style={styles.detalleSectionDetalle}>
+                          <Text style={styles.detalleLabelDetalle}>Estado del paquete</Text>
+                          <Text style={styles.detalleValueDetalle}>
+                            {paqueteSeleccionado.estadoNombre || '—'}
+                          </Text>
+                        </View>
+
+                        <View style={styles.detalleSectionDetalle}>
+                          <Text style={styles.detalleLabelDetalle}>Ubicación actual</Text>
+                          <Text style={styles.detalleValueDetalle}>
+                            {paqueteSeleccionado.ubicacionActual || '—'}
+                          </Text>
+                        </View>
+
+                        <View style={styles.detalleSectionDetalle}>
+                          <Text style={styles.detalleLabelDetalle}>Fecha creación</Text>
+                          <Text style={styles.detalleValueDetalle}>{fechaCreacion}</Text>
+                        </View>
+
+                        <View style={styles.detalleSectionDetalle}>
+                          <Text style={styles.detalleLabelDetalle}>Conductor</Text>
+                          <Text style={styles.detalleValueDetalle}>
+                            {getConductorDetalle(paqueteSeleccionado.id_conductor)}
+                          </Text>
+                        </View>
+
+                        <View style={styles.detalleSectionDetalle}>
+                          <Text style={styles.detalleLabelDetalle}>Vehículo</Text>
+                          <Text style={styles.detalleValueDetalle}>
+                            {getVehiculoDetalle(paqueteSeleccionado.id_vehiculo)}
+                          </Text>
+                        </View>
+
+                        <View style={styles.detalleSectionDetalle}>
+                          <Text style={styles.detalleLabelDetalle}>Voluntario encargado</Text>
+                          <Text style={styles.detalleValueDetalle}>
+                            {paqueteSeleccionado.voluntarioEncargado ||
+                              'El voluntario se asigna al iniciar la ruta'}
+                          </Text>
+                        </View>
+                      </>
+                    );
+                  })()}
+                </View>
+              ) : (
+                <Text style={styles.detalleValueDetalle}>Cargando detalles…</Text>
+              )}
+            </ScrollView>
+
+            <View style={styles.modalFooterDetalle}>
+              <TouchableOpacity
+                style={styles.modalFooterButtonSecondary}
+                onPress={handleCerrarDetalle}
+              >
+                <Text style={styles.modalFooterButtonText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={modalVisible}
@@ -1319,6 +1897,13 @@ const styles = StyleSheet.create({
   },
   estadoBadgeText: { fontSize: 11, fontWeight: '700', color: '#ffffff' },
   itemBody: { padding: 12 },
+  itemActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+  },
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   label: { fontSize: 13, fontWeight: '600', color: adminlteColors.dark },
   valuePrimary: {
@@ -1396,12 +1981,109 @@ const styles = StyleSheet.create({
   modalFooterButtonDisabled: {
     opacity: 0.5,
   },
+
+  overlayBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalCardDetalle: {
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    width: '92%',
+    maxWidth: 420,
+    maxHeight: '85%',
+    overflow: 'hidden',
+    elevation: 6,
+    alignSelf: 'center',
+  },
+  modalHeaderDetalle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: adminlteColors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  modalHeaderContentDetalle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  modalHeaderTitleDetalle: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  modalCloseButtonDetalle: {
+    padding: 4,
+  },
+  modalBodyCardDetalle: {
+    padding: 16,
+    backgroundColor: '#ffffff',
+  },
+  detalleContentDetalle: {
+    flex: 1,
+    paddingBottom: 12,
+  },
+  alertInfoDetalle: {
+    backgroundColor: '#d1ecf1',
+    borderRadius: 4,
+    padding: 12,
+    marginBottom: 16,
+  },
+  alertInfoTitleDetalle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0c5460',
+    marginBottom: 6,
+  },
+  alertInfoTextDetalle: {
+    fontSize: 14,
+    color: '#0c5460',
+  },
+  detalleSectionDetalle: {
+    marginBottom: 12,
+  },
+  detalleLabelDetalle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: adminlteColors.dark,
+    marginBottom: 4,
+  },
+  detalleValueDetalle: {
+    fontSize: 14,
+    color: adminlteColors.dark,
+  },
+  modalFooterDetalle: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: adminlteColors.primary,
+  },
   modalFooterButtonText: {
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '500',
   },
 
+  btnVerPaquete: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: adminlteColors.secondary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  btnVerPaqueteText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
   btnEditarPaquete: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1409,9 +2091,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 4,
-    marginTop: 10,
-    marginHorizontal: 12,
-    marginBottom: 12,
+    marginLeft: 4,
   },
   btnEditarPaqueteText: {
     color: '#ffffff',
@@ -1430,87 +2110,87 @@ const styles = StyleSheet.create({
     color: adminlteColors.muted,
     marginTop: 4,
   },
-dropdownBox: {
-  borderWidth: 1,
-  borderColor: '#ced4da',
-  borderRadius: 4,
-  paddingHorizontal: 12,
-  paddingVertical: 12,
-  backgroundColor: '#ffffff',
-},
-dropdownText: {
-  fontSize: 14,
-  color: adminlteColors.dark,
-},
+  dropdownBox: {
+    borderWidth: 1,
+    borderColor: '#ced4da',
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: adminlteColors.dark,
+  },
 
-pickerOverlay: {
-  flex: 1,
-  backgroundColor: 'rgba(0,0,0,0.4)',
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-pickerModal: {
-  width: '85%',
-  backgroundColor: '#ffffff',
-  borderRadius: 10,
-  padding: 16,
-},
-pickerTitle: {
-  fontSize: 16,
-  fontWeight: '600',
-  marginBottom: 8,
-  color: adminlteColors.dark,
-},
-pickerItem: {
-  paddingVertical: 10,
-  borderBottomWidth: 1,
-  borderBottomColor: '#eee',
-},
-pickerItemText: {
-  fontSize: 14,
-  color: adminlteColors.dark,
-},
-imageButtonsRow: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  marginBottom: 4,
-  marginTop: 12,
-},
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerModal: {
+    width: '85%',
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    padding: 16,
+  },
+  pickerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: adminlteColors.dark,
+  },
+  pickerItem: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  pickerItemText: {
+    fontSize: 14,
+    color: adminlteColors.dark,
+  },
+  imageButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+    marginTop: 12,
+  },
 
-btnImagenPrimario: {
-  flex: 1,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: adminlteColors.primary,
-  paddingVertical: 10,
-  borderRadius: 6,
-  marginLeft: 6,
-},
+  btnImagenPrimario: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: adminlteColors.primary,
+    paddingVertical: 10,
+    borderRadius: 6,
+    marginLeft: 6,
+  },
 
-btnImagenSecundario: {
-  flex: 1,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: adminlteColors.info,
-  paddingVertical: 10,
-  borderRadius: 6,
-  marginRight: 6,
-},
+  btnImagenSecundario: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: adminlteColors.info,
+    paddingVertical: 10,
+    borderRadius: 6,
+    marginRight: 6,
+  },
 
-btnImagenText: {
-  color: '#ffffff',
-  fontSize: 13,
-  fontWeight: '600',
-},
+  btnImagenText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
 
-previewImagen: {
-  width: '100%',
-  height: 180,
-  borderRadius: 8,
-  marginBottom: 8,
-},
+  previewImagen: {
+    width: '100%',
+    height: 180,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
 
 card: {
     backgroundColor: adminlteColors.cardBg,
