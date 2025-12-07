@@ -101,6 +101,17 @@ export default function ListadoSolicitudScreen() {
           item.telefono_contacto ||
           item.telefonoContacto ||
           (item.solicitante && (item.solicitante.telefono || item.solicitante.celular));
+        const referenciaNombre =
+          item.referencia_nombre ||
+          item.nombre_referencia ||
+          (item.persona_referencia && item.persona_referencia.nombre) ||
+          (item.referencia && item.referencia.nombre);
+        const referenciaTelefono =
+          item.referencia_celular ||
+          item.celular_referencia ||
+          item.referencia_telefono ||
+          (item.persona_referencia && item.persona_referencia.telefono) ||
+          (item.referencia && item.referencia.telefono);
         const tipoEmergenciaValor =
           (item.tipo_emergencia && (item.tipo_emergencia.nombre || item.tipo_emergencia.descripcion)) ||
           (item.tipoEmergencia && (item.tipoEmergencia.nombre || item.tipoEmergencia.descripcion)) ||
@@ -125,6 +136,8 @@ export default function ListadoSolicitudScreen() {
           email: item.email || item.correo || (item.solicitante && item.solicitante.email) || 'N/D',
           ci: item.ci || item.documento || (item.solicitante && item.solicitante.ci) || 'N/D',
           telefono: telefonoContacto || 'N/D',
+          referenciaNombre: referenciaNombre || 'N/D',
+          referenciaTelefono: referenciaTelefono || 'N/D',
           direccion: direccionDestino || item.direccion || item.ubicacion || item.domicilio || 'N/D',
           comunidad: comunidadDestino || item.comunidad || null,
           provincia: provinciaDestino || item.provincia || null,
@@ -630,22 +643,6 @@ const formatFechaSoloDia = (raw) => {
                    {formatFechaSoloDia(solicitud.fechaInicio || solicitud.fecha)}  
                 </Text>
 
-                <View style={styles.solicitudInfoRow}>
-                  <FontAwesome5
-                    name="boxes"
-                    size={12}
-                    color={adminlteColors.muted}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.solicitudInfoLabel}>Productos:</Text>
-                </View>
-                <View style={styles.productosContainer}>
-                  {solicitud.productos.map((producto, index) => (
-                    <View key={index} style={styles.productoBadge}>
-                      <Text style={styles.productoBadgeText}>{producto}</Text>
-                    </View>
-                  ))}
-                </View>
               </View>
 
               <View style={styles.solicitudCardFooter}>
@@ -755,6 +752,18 @@ const formatFechaSoloDia = (raw) => {
                       <Text style={styles.detalleLabel}>Celular:</Text>
                       <Text style={styles.detalleValue}>
                         {solicitudSeleccionada.telefono}
+                      </Text>
+                    </View>
+                    <View style={styles.detalleSection}>
+                      <Text style={styles.detalleLabel}>Nombre persona de referencia:</Text>
+                      <Text style={styles.detalleValue}>
+                        {solicitudSeleccionada.referenciaNombre}
+                      </Text>
+                    </View>
+                    <View style={styles.detalleSection}>
+                      <Text style={styles.detalleLabel}>Celular persona de referencia:</Text>
+                      <Text style={styles.detalleValue}>
+                        {solicitudSeleccionada.referenciaTelefono}
                       </Text>
                     </View>
                     <View style={styles.detalleSection}>
