@@ -939,12 +939,20 @@ export default function PaqueteScreen() {
     }
   };
 
-  const obtenerColorBorde = (index) => {
+  const obtenerColorBorde = (paquete, index) => {
+    const estado = getEstadoKey(paquete);
+    if (estado === 'en_camino') {
+      return adminlteColors.info;
+    }
+    if (estado === 'pendiente') {
+      return adminlteColors.warning;
+    }
+    if (estado === 'entregado') {
+      return adminlteColors.success;
+    }
+
     const colors = [
       adminlteColors.primary,
-      adminlteColors.success,
-      adminlteColors.warning,
-      adminlteColors.info,
       adminlteColors.secondary,
       adminlteColors.danger,
     ];
@@ -1060,7 +1068,7 @@ export default function PaqueteScreen() {
               key={p.id}
               style={[
                 styles.itemCard,
-                { borderTopWidth: 3, borderTopColor: obtenerColorBorde(idx) },
+                { borderTopWidth: 3, borderTopColor: obtenerColorBorde(p, idx) },
               ]}
             >
               <View style={styles.itemHeader}>
@@ -1168,16 +1176,20 @@ export default function PaqueteScreen() {
                 </View>
                 <Text style={styles.valueMuted}>{formatFechaAprobacion(p.fechaCreacion) || '—'}</Text>
 
-                <View style={styles.row}>
-                  <FontAwesome5
-                    name="calendar-check"
-                    size={12}
-                    color={adminlteColors.muted}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.label}>Fecha Entrega:</Text>
-                </View>
-                <Text style={styles.valueMuted}>{formatFechaAprobacion(p.fechaEntrega) || '—'}</Text>
+                {esEstadoEntregado(p.estado_id) && p.fechaEntrega ? (
+                  <>
+                    <View style={styles.row}>
+                      <FontAwesome5
+                        name="calendar-check"
+                        size={12}
+                        color={adminlteColors.muted}
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text style={styles.label}>Fecha Entrega:</Text>
+                    </View>
+                    <Text style={styles.valueMuted}>{formatFechaAprobacion(p.fechaEntrega)}</Text>
+                  </>
+                ) : null}
               </View>
 
               <View style={styles.itemActions}>
