@@ -5,8 +5,7 @@ import SmallBox from '../components/SmallBox';
 import { getApiConfig, API_BASE_URL } from '../config/api';
 import axios from 'axios';
 import { DoughnutChart } from 'react-native-chart-kit';
-import { PieChart } from 'react-native-chart-kit';
-
+import { PieChart, BarChart } from 'react-native-chart-kit';
 export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -146,6 +145,45 @@ export default function DashboardScreen() {
           />
         </View>
 
+        {/* Gráfico de barras: Solicitudes por Provincia/Comunidad (Top 5) */}
+        {Array.isArray(data.solicitudesPorComunidad) && data.solicitudesPorComunidad.length > 0 && (
+          <View style={styles.barContainer}>
+            <Text style={styles.barTitle}>Solicitudes por Provincia/Comunidad (Top 5)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <BarChart
+                data={{
+                  labels: data.solicitudesPorComunidad.slice(0, 5).map(item => item.comunidad || '—'),
+                  datasets: [
+                    {
+                      data: data.solicitudesPorComunidad.slice(0, 5).map(item => Number(item.total) || 0),
+                    },
+                  ],
+                }}
+                width={Math.max(350, data.solicitudesPorComunidad.slice(0, 5).length * 90)}
+                height={220}
+                yAxisLabel=""
+                yAxisSuffix=""
+                chartConfig={{
+                  backgroundColor: '#fff',
+                  backgroundGradientFrom: '#fff',
+                  backgroundGradientTo: '#fff',
+                  decimalPlaces: 0,
+                  color: (opacity = 1) => `rgba(23, 162, 184, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
+                  style: { borderRadius: 16 },
+                  propsForLabels: { fontWeight: 'bold' },
+                  propsForBackgroundLines: { stroke: '#eee' },
+                  barPercentage: 0.7,
+                }}
+                style={{ marginVertical: 8, borderRadius: 12 }}
+                fromZero
+                showValuesOnTopOfBars
+              />
+            </ScrollView>
+          </View>
+        )}
+
+
         <Text style={styles.cardTitle}>Paquetes Entregados</Text>
 
         <ScrollView
@@ -154,7 +192,7 @@ export default function DashboardScreen() {
           contentContainerStyle={{ paddingHorizontal: 0, paddingBottom:40,paddingTop:10, margin:0}}
         >
           <View style={{ minWidth: 370}}>
-            <View style={[styles.tableHeaderRow, { paddingVertical: 6 }]}>...
+            <View style={[styles.tableHeaderRow, { paddingVertical: 6 }]}>
           <Text style={[styles.tableHeaderText, { flex: 0.1 }]}>Código</Text>
           <Text style={[styles.tableHeaderText, { flex: 0.2 }]}>Creado</Text>
           <Text style={[styles.tableHeaderText, { flex: 0.2 }]}>Entregado</Text>
